@@ -306,7 +306,11 @@ function kl_analytics( $atts, $content = null ) {
 
 	$output = '';
 
-    $output .= '<h2>'.$klala_config['klala_table'].'</h2>';	
+    $title = $klala_config['klala_table'];
+    $title = str_replace('wp_','',$title);
+    $title = str_replace('_',' ',$title);    
+    $title = ucfirst($title);        
+    $output .= '<h2 class="klala_heading">'.$title.'</h2>';	
     
     // resolve date filters, defaulting to current month
     if (isset($_POST['klala_start'])) {
