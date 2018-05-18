@@ -1,0 +1,9 @@
+form.kl-analytics-download {
+    display: inline;
+}
+input.kl-analytics-download, input[type="submit"].kl-analytics-filter {
+    display: inline;
+    padding-top: 0.3em;
+    padding-bottom: 0.3em;        
+}
+
