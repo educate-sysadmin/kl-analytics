@@ -208,14 +208,14 @@ function klala_page_hits_by_user_and_date($table, $limit = null, $order_by = 'co
     return $result;
 }
 
-function klala_page_visits($table, $limit = null) {
+function klala_page_visits1($table, $limit = null) {
     global $wpdb;
     global $klala_config;   
     
     $klala_page_hits_by_user_and_date = klala_page_hits_by_user_and_date($klala_config['klala_table'], null, 'count(request) DESC');
     $result = array();
     foreach ($klala_page_hits_by_user_and_date as $record) {
-        if (!array_key_exists($record['page'], $result)) {
+        if (!isset($result[$record['page']])) {
             $result[$record['page']] = 1;
         } else {
             $result[$record['page']]++;
@@ -237,18 +237,69 @@ function klala_page_visits($table, $limit = null) {
     return $return;
 }
 
+function klala_page_visits($table, $limit = null) {
+    global $wpdb;
+    global $klala_config;   
+    
+    $klala_page_hits_by_user_and_date = klala_page_hits_by_user_and_date($klala_config['klala_table'], null/*NO_LIMIT*/,' date ');
+    $result = array();
+    $lastdate = null; 
+    $lastusers = array(); // users per date    
+    foreach ($klala_page_hits_by_user_and_date as $record) {
+        // create date record if necessary
+        if (!isset($result[$record['page']])) {
+            $result[$record['page']] = 1;
+        } 
+        // compute if visit
+        if ($record['date'] != $lastdate || ($record['date'] == $lastdate && !in_array($record['user'],$lastusers)) ) {
+            $result[$record['page']]++;
+            $lastusers[] = $record['user'];
+        }
+        // handle memory
+        if ($record['date'] != $lastdate) {
+            $lastusers = array();
+        }
+        $lastdate = $record['date'];
+    }
+    // sort by visits desc
+    arsort($result);        
+    
+    // convert to array of keys and values, up to limit option if set
+    $return = array();    
+    foreach ($result as $key => $val) {
+        $return[] = ['page'=>$key, 'visits'=>$val];
+        if ($limit > 0) {        
+            if (count($return) >= $limit) {
+                break;
+            }
+        }
+    }
+    return $return;
+}
+
 function klala_visits_by_date($table, $limit = null) {
     global $wpdb;
     global $klala_config;   
     
     $klala_page_hits_by_user_and_date = klala_page_hits_by_user_and_date($klala_config['klala_table'], null/*NO_LIMIT*/,' date ASC');
     $result = array();
+    $lastdate = null; 
+    $lastusers = array(); // users per date    
     foreach ($klala_page_hits_by_user_and_date as $record) {
-        if (!array_key_exists($record['date'], $result)) {
+        // create date record if necessary
+        if (!isset($result[$record['date']])) {
             $result[$record['date']] = 1;
-        } else {
+        } 
+        // compute if visit
+        if ($record['date'] != $lastdate || ($record['date'] == $lastdate && !in_array($record['user'],$lastusers)) ) {
             $result[$record['date']]++;
+            $lastusers[] = $record['user'];
         }
+        // handle memory
+        if ($record['date'] != $lastdate) {
+            $lastusers = array();
+        }
+        $lastdate = $record['date'];
     }
     // convert to array of keys and values, up to limit option if set
     $return = array();    
