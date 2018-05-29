@@ -322,12 +322,12 @@ function klala_visits_by_date_chart_dhtml($table, $limit = null) {
           },
           'chartArea': { 'width': '90%', height: '100%', top: '9%', left: '5%', right: '3%', bottom: '30%'} /* Adjust chart alignment to fit vertical labels for horizontal axis*/
         };
-        var chart = new google.visualization.LineChart(document.getElementById('klala_visits_by_date_chart'));
+        var chart = new google.visualization.LineChart(document.getElementById('klala_visits_by_date_chart_chart'));
         chart.draw(data, options);
     }    
     ";
     $return .= '</script>';    
-    $return .= '<div id="klala_visits_by_date_chart"></div>';
+    $return .= '<div id="klala_visits_by_date_chart_chart"></div>';
     
     return $return;
 }
