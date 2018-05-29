@@ -208,35 +208,6 @@ function klala_page_hits_by_user_and_date($table, $limit = null, $order_by = 'co
     return $result;
 }
 
-function klala_page_visits1($table, $limit = null) {
-    global $wpdb;
-    global $klala_config;   
-    
-    $klala_page_hits_by_user_and_date = klala_page_hits_by_user_and_date($klala_config['klala_table'], null, 'count(request) DESC');
-    $result = array();
-    foreach ($klala_page_hits_by_user_and_date as $record) {
-        if (!isset($result[$record['page']])) {
-            $result[$record['page']] = 1;
-        } else {
-            $result[$record['page']]++;
-        }
-    }
-    // sort by visits desc
-    arsort($result);
-    
-    // convert to array of keys and values, up to limit option if set
-    $return = array();    
-    foreach ($result as $key => $val) {
-        $return[] = ['page'=>$key, 'visits'=>$val];
-        if ($limit > 0) {        
-            if (count($return) >= $limit) {
-                break;
-            }
-        }
-    }
-    return $return;
-}
-
 function klala_page_visits($table, $limit = null) {
     global $wpdb;
     global $klala_config;   
@@ -250,15 +221,16 @@ function klala_page_visits($table, $limit = null) {
         if (!isset($result[$record['page']])) {
             $result[$record['page']] = 0;
         } 
+        // handle memory
+        if ($record['date'] != $lastdate) {
+            $lastusers = array();
+        }        
         // compute if visit
         if ($record['date'] != $lastdate || ($record['date'] == $lastdate && !in_array($record['user'],$lastusers)) ) {
             $result[$record['page']]++;
             $lastusers[] = $record['user'];
         }
-        // handle memory
-        if ($lastusers != null && $record['date'] != $lastdate) {
-            $lastusers = array();
-        }
+        // memory
         $lastdate = $record['date'];
     }
     // sort by visits desc
@@ -473,7 +445,8 @@ function kl_analytics( $atts, $content = null ) {
     //$klala_log = klala_get_logs($klala_table);     
     //$output .= klutil_array_to_table($klala_log);
 
-    /* add analytics sections */    
+    /* add analytics sections */        
+    $output .= '<a name = "klala_users_login_counts_a"></a>';              
     $output .= '<div class="klala klala_users_login_counts" id = "klala_users_login_counts">';
     $output .= '<h2>'.'User logins'.'</h2>';
     $klala_users_login_counts = klala_user_logins($klala_config['klala_table'],'klala_table'); 
@@ -491,33 +464,37 @@ function kl_analytics( $atts, $content = null ) {
             if (!$found) { $klala_users_login_counts[] = array ('user'=>$user->user_login, 'count'=> '0'); }
         }
     }            
-    $output .= klutil_array_to_table($klala_users_login_counts,'klala_users_login_counts','klala_table');
+    $output .= klutil_array_to_table($klala_users_login_counts,'klala_users_login_counts_table','klala_table');
     $output .= '</div>';
-    
-    $output .= '<div class="klala visits_by_date_chart" id="visits_by_date_chart">';
+
+    $output .= '<a name = "klala_visits_by_date_chart_a"></a>';          
+    $output .= '<div class="klala klala_visits_by_date_chart" id="klala_visits_by_date_chart">';
     $output .= '<h2>';
     $output .= 'Visits by date (chart)';
     $output .= '</h2>';    
     $output .= klala_visits_by_date_chart_dhtml($table, $limit = null);
     $output .= '</div>';
     
+    $output .= '<a name = "klala_visits_by_date_a"></a>';      
     $output .= '<div class="klala klala_visits_by_date" id="klala_visits_by_date">';
     $output .= '<h2>';
     $output .= 'Visits by date';
     $output .= '</h2>';
     $klala_visits_by_date = klala_visits_by_date($klala_config['klala_table']/*, no_limit*/); 
-    $output .= klutil_array_to_table($klala_visits_by_date,'klala_visits_by_date','klala_table');
+    $output .= klutil_array_to_table($klala_visits_by_date,'klala_visits_by_date_table','klala_table');
     $output .= '</div>';        
-    
+
+    $output .= '<a name = "klala_page_hits_by_user_and_date_a"></a>';        
     $output .= '<div class="klala klala_page_hits_by_user_and_date" id="klala_page_hits_by_user_and_date">';
     $output .= '<h2>';
     $output .= 'Pages by users and dates';
     if ((int) get_option('klala_limit') > 0) { $output .= ' ('.'top '.get_option('klala_limit').')'; }
     $output .= '</h2>';
     $klala_page_hits_by_user_and_date = klala_page_hits_by_user_and_date($klala_config['klala_table'], get_option('klala_limit')); 
-    $output .= klutil_array_to_table($klala_page_hits_by_user_and_date,'klala_page_hits_by_user_and_date','klala_table');
+    $output .= klutil_array_to_table($klala_page_hits_by_user_and_date,'klala_page_hits_by_user_and_date_table','klala_table');
     $output .= '</div>';
-    
+
+    $output .= '<a name = "klala_page_visits_a"></a>';    
     $output .= '<div class="klala klala_page_visits" id = "klala_page_visits">';
     $output .= '<h2>';
     $output .= 'Page visits';
@@ -525,28 +502,30 @@ function kl_analytics( $atts, $content = null ) {
     $output .= '</h2>';
     $output .= '<p>'.'Pages visited by different users or on different days.'.'</p>';
     $klala_page_visits = klala_page_visits($klala_config['klala_table'], get_option('klala_limit')); 
-    $output .= klutil_array_to_table($klala_page_visits,'klala_page_visits','klala_table');
+    $output .= klutil_array_to_table($klala_page_visits,'klala_page_visits_table','klala_table');
     $output .= '</div>';
     
+    $output .= '<a name = "klala_page_hits_a"></a>';        
     $output .= '<div class="klala klala_page_hits" id="klala_page_hits">';
     $output .= '<h2>';
     $output .= 'Page hits';
     if ((int) get_option('klala_limit') > 0) { $output .= ' ('.'top '.get_option('klala_limit').')'; }
     $output .= '</h2>';
     $klala_page_hits = klala_page_hits($klala_config['klala_table'], get_option('klala_limit')); 
-    $output .= klutil_array_to_table($klala_page_hits,'klala_page_hits','klala_table');
+    $output .= klutil_array_to_table($klala_page_hits,'klala_page_hits_table','klala_table');
     $output .= '</div>';    
     
     if ( get_option('klala_downloads_monitor') ) {   
         include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
         if (is_plugin_active("download-monitor/download-monitor.php")) { 
+            $output .= '<a name = "klala_downloads_a"></a>';        
             $output .= '<div class="klala klala_downloads" id ="klala_downloads">';
             $output .= '<h2>';
             $output .= 'Media and downloads';
             if ((int) get_option('klala_limit') > 0) { $output .= ' ('.'top '.get_option('klala_limit').')'; }
             $output .= '</h2>';
             $klala_downloads = klala_downloads($klala_config['klala_table'], get_option('klala_limit')); 
-            $output .= klutil_array_to_table($klala_downloads,'klala_downloads','klala_table');
+            $output .= klutil_array_to_table($klala_downloads,'klala_downloads_table','klala_table');
             $output .= '</div>';    
         }
     }
