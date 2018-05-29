@@ -577,7 +577,14 @@ function klala_requests() {
 
 function klala_init_google_charts() {
     // Ref <!-- https://developers.google.com/chart/interactive/docs/quick_start -->
-    // include google charts
+    // include google charts    
+    echo '
+    <script type="text/javascript">
+    function klala_drawCharts() {
+        klala_js_visits_by_date_chart();
+    }
+    </script>
+    ';
     echo '
     <!--Load the AJAX API-->    
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
@@ -590,13 +597,6 @@ function klala_init_google_charts() {
       // Set a callback to run when the Google Visualization API is loaded.
       google.charts.setOnLoadCallback(klala_drawCharts);
     </script>";
-    echo '
-    <script type="text/javascript">
-    function klala_drawCharts() {
-        klala_js_visits_by_date_chart();
-    }
-    </script>
-    ';    
 }
 
 add_action('init','klala_requests'); // for downloads
