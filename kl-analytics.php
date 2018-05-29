@@ -590,16 +590,14 @@ function klala_init_google_charts() {
       // Set a callback to run when the Google Visualization API is loaded.
       google.charts.setOnLoadCallback(klala_drawCharts);
     </script>";
+    echo '
+    <script type="text/javascript">
+    function klala_drawCharts() {
+        klala_js_visits_by_date_chart();
+    }
+    </script>
+    ';    
 }
-
-echo '
-<script type="text/javascript">
-function klala_drawCharts() {
-    console.log("klala_drawCharts");
-    klala_js_visits_by_date_chart();
-}
-</script>
-';
 
 add_action('init','klala_requests'); // for downloads
 add_shortcode( 'kl_analytics', 'kl_analytics' );
