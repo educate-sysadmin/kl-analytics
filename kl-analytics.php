@@ -442,17 +442,20 @@ function kl_analytics( $atts, $content = null ) {
     $output .= klutil_array_to_table($klala_users_login_counts,'klala_users_login_counts','klala_table');
     $output .= '</div>';
     
+    $output .= '<div class="klala visits_by_date_chart" id="visits_by_date_chart">';
+    $output .= '<h2>';
+    $output .= 'Visits by date (chart)';
+    $output .= '</h2>';    
+    $output .= klala_visits_by_date_chart_dhtml($table, $limit = null);
+    $output .= '</div>';
+    
     $output .= '<div class="klala klala_visits_by_date" id="klala_visits_by_date">';
     $output .= '<h2>';
     $output .= 'Visits by date';
     $output .= '</h2>';
     $klala_visits_by_date = klala_visits_by_date($klala_config['klala_table']/*, no_limit*/); 
     $output .= klutil_array_to_table($klala_visits_by_date,'klala_visits_by_date','klala_table');
-    $output .= '</div>';    
-
-    $output .= '<div class="klala visits_by_date_chart" id="visits_by_date_chart">';
-    $output .= klala_visits_by_date_chart_dhtml($table, $limit = null);
-    $output .= '</div>';
+    $output .= '</div>';        
     
     $output .= '<div class="klala klala_page_hits_by_user_and_date" id="klala_page_hits_by_user_and_date">';
     $output .= '<h2>';
