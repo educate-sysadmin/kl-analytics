@@ -248,7 +248,7 @@ function klala_page_visits($table, $limit = null) {
     foreach ($klala_page_hits_by_user_and_date as $record) {
         // create date record if necessary
         if (!isset($result[$record['page']])) {
-            $result[$record['page']] = 1;
+            $result[$record['page']] = 0;
         } 
         // compute if visit
         if ($record['date'] != $lastdate || ($record['date'] == $lastdate && !in_array($record['user'],$lastusers)) ) {
@@ -256,7 +256,7 @@ function klala_page_visits($table, $limit = null) {
             $lastusers[] = $record['user'];
         }
         // handle memory
-        if ($record['date'] != $lastdate) {
+        if ($lastusers != null && $record['date'] != $lastdate) {
             $lastusers = array();
         }
         $lastdate = $record['date'];
@@ -284,21 +284,22 @@ function klala_visits_by_date($table, $limit = null) {
     $klala_page_hits_by_user_and_date = klala_page_hits_by_user_and_date($klala_config['klala_table'], null/*NO_LIMIT*/,' date ASC');
     $result = array();
     $lastdate = null; 
-    $lastusers = array(); // users per date    
+    $lastusers = array(); // users per date
     foreach ($klala_page_hits_by_user_and_date as $record) {
         // create date record if necessary
         if (!isset($result[$record['date']])) {
-            $result[$record['date']] = 1;
+            $result[$record['date']] = 0;
         } 
+        // handle memory
+        if ($record['date'] != $lastdate) {
+            $lastusers = array();
+        }        
         // compute if visit
         if ($record['date'] != $lastdate || ($record['date'] == $lastdate && !in_array($record['user'],$lastusers)) ) {
             $result[$record['date']]++;
             $lastusers[] = $record['user'];
         }
-        // handle memory
-        if ($record['date'] != $lastdate) {
-            $lastusers = array();
-        }
+        // memory
         $lastdate = $record['date'];
     }
     // convert to array of keys and values, up to limit option if set
