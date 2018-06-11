@@ -14,6 +14,7 @@ $klala_log_fields_ = array(
     'remote_host' => $remote_host,
     'client' => $client,
     'userid' => $userid,
+    'groups' => $groups,
     'time' => $time,
     'method' => $method,
     'request' => $request,
@@ -28,7 +29,8 @@ require_once('kl-analytics-options.php');
 
 /* backend configs */
 $klala_config = array(
-    'roles' => array(), // merged into user-based results e.g. user logins and used to filter downloads statistics
+    'roles' => array(), // roles to merge into user-based results e.g. user logins (kl-specific)
+    'groups' => '', // groups to merge into user-based results e.g. user logins (kl-specific) comma-delimited, defaults to get_option('klala_add_groups')    
     'klala_tables' => array('kl_access_logs','kl_access_logs_archive'), // default available (and allowed) log tables
     'klala_table' => null, // current table
 );
@@ -45,6 +47,43 @@ function klala_init() {
     if (get_option('klal_tables')) {
         $config['klala_tables'] = explode(",",get_option('klal_tables'));
     }
+       
+    // set groups to same as kl-access-logs
+    if ($klala_config['groups'] == '') { $klala_config['groups'] = get_option('klal_add_groups'); }
+}
+
+/* helper to get array of users' groups, with filter */
+function klala_get_user_groups($filter, $user_id) {
+    global $wpdb;
+    // ref http://docs.itthinx.com/document/groups/api/examples/
+    $groups = array(); // to populate
+    $groups_user = new Groups_User( $user_id );
+    // get group objects
+    $user_groups = $groups_user->groups;
+    // get group ids (user is direct member)
+    $user_group_ids = $groups_user->group_ids;
+    // get group ids (user is direct member or by group inheritance)
+    $user_group_ids_deep = $groups_user->group_ids_deep;
+    foreach ($user_group_ids_deep as $group_id) {
+	    $sql = 'SELECT name FROM '.$wpdb->prefix .'groups_group WHERE group_id='.$group_id;
+	    $row = $wpdb->get_row( $sql );
+	    $group_name = $row->name;
+        $filter_groups = explode(",",$filter);
+        foreach ($filter_groups as $filter_group) {
+	        if (strpos($group_name,$filter_group) !== false) { 
+        	    $groups[] = $group_name;
+        	}
+        }
+    }
+    return $groups;
+}
+
+/* helper: get user_id for username */
+function klala_get_id_for_username($username) {
+    global $wpdb;    
+    $sql = 'SELECT ID FROM '.$wpdb->prefix.'users WHERE user_login = "'.$username.'"';
+	$result = $wpdb->get_row($sql);
+    return $result->ID;
 }
 
 function klala_get_logs($table) {
@@ -62,8 +101,8 @@ function klala_get_logs($table) {
 	$result = $wpdb->get_results( 
 		$sql
 	);
-
-    return $result;    
+	
+    return $result;
 }
 
 /* helper to convert array to csv */
@@ -147,7 +186,7 @@ function klala_user_logins($table, $limit = null) {
     global $wpdb;
     global $klala_config; 
     
-    $sql = 'SELECT userid AS`user`, count(userid) AS `count` FROM '.$table;
+    $sql = 'SELECT userid AS`user`, groups, count(userid) AS `count` FROM '.$table;
     $sql .= ' WHERE referer LIKE "%login%" ';
     if (isset($_POST['klala_start']) && isset($_POST['klala_end'])) {
         $sql .= ' AND datetime >= "'.$_POST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_POST['klala_end'].' 23:59:59'.'" ';   
@@ -297,8 +336,6 @@ function klala_visits_by_date_chart_dhtml($table, $limit = null) {
     $return .= "    
     function klala_js_visits_by_date_chart() {
     
-    console.log('klala_js_visits_by_date_chart');
-
     var data = google.visualization.arrayToDataTable([
     ";
     // add data
@@ -461,7 +498,12 @@ function kl_analytics( $atts, $content = null ) {
                     $found = true;
                 }
             }
-            if (!$found) { $klala_users_login_counts[] = array ('user'=>$user->user_login, 'count'=> '0'); }
+            if (!$found) { 
+                // add, with group
+           	    $user_id = klala_get_id_for_username($user->user_login);
+    	        $groups = implode(",",klala_get_user_groups($klala_config['groups'], $user_id));
+                $klala_users_login_counts[] = array ('user'=>$user->user_login, 'groups'=>$groups, 'count'=> '0'); 
+            }
         }
     }            
     $output .= klutil_array_to_table($klala_users_login_counts,'klala_users_login_counts_table','klala_table');

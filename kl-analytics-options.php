@@ -60,7 +60,7 @@ function klala_plugin_settings_page() {
         <td>
         <pre>
 $klala_config = array(
-    'roles' => array(), // roles to merge into user-based results e.g. user logins
+    'roles' => array(), // roles to merge into user-based results e.g. user logins (kl-specific)
     'klala_tables' => array('kl_access_logs','kl_access_logs_archive'), // default available (and allowed) log tables
     'klala_table' => null, // current table
 );        </pre>
