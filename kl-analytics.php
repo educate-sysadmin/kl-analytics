@@ -3,7 +3,7 @@
 Plugin Name: KL Access Logs Analytics
 Plugin URI: https://github.com/educate-sysadmin/kl-analytics
 Description: Wordpress plugin to provide (Combined) Common Log Format analytics (from kl-access-logs)
-Version: 0.1
+Version: 0.1.1
 Author: b.cunningham@ucl.ac.uk
 Author URI: https://educate.london
 License: GPL2
@@ -30,6 +30,7 @@ require_once('kl-analytics-options.php');
 /* backend configs */
 $klala_config = array(
     'roles' => array(), // roles to merge into user-based results e.g. user logins (kl-specific)
+    'roles_populate' => '', // roles to populate roles field with when merging (kl-specific)
     'groups' => '', // groups to merge into user-based results e.g. user logins (kl-specific) comma-delimited, defaults to get_option('klala_add_groups')    
     'klala_tables' => array('kl_access_logs','kl_access_logs_archive'), // default available (and allowed) log tables
     'klala_table' => null, // current table
@@ -50,6 +51,7 @@ function klala_init() {
        
     // set groups to same as kl-access-logs
     if ($klala_config['groups'] == '') { $klala_config['groups'] = get_option('klal_add_groups'); }
+    if ($klala_config['roles_populate'] == '') { $klala_config['roles_populate'] = get_option('klal_add_roles'); } 
 }
 
 /* helper to get array of users' groups, with filter */
@@ -76,6 +78,28 @@ function klala_get_user_groups($filter, $user_id) {
         }
     }
     return $groups;
+}
+
+/* helper to get array of users' roles, with filter */
+function klala_get_user_roles($filter, $user_id) {
+    $roles = array();
+    $user = get_user_by( 'id', $user_id);    
+    if ( !($user instanceof WP_User)) {
+        $roles = array('visitor');
+    } else {
+       	$roles = $user->roles;
+    }
+   
+    $return_roles = array();
+    $filter_roles = explode(",",$filter);    
+    foreach ($roles as $role) {
+        foreach ($filter_roles as $filter_role) {
+            if (strpos($role,$filter_role) !== false) { 
+        	    $return_roles[] = $role;
+        	}
+        }    
+    }
+    return $return_roles; 
 }
 
 /* helper: get user_id for username */
@@ -186,7 +210,7 @@ function klala_user_logins($table, $limit = null) {
     global $wpdb;
     global $klala_config; 
     
-    $sql = 'SELECT userid AS`user`, groups, count(userid) AS `count` FROM '.$table;
+    $sql = 'SELECT userid AS`user`, roles, count(userid) AS `count` FROM '.$table;
     $sql .= ' WHERE referer LIKE "%login%" ';
     if (isset($_POST['klala_start']) && isset($_POST['klala_end'])) {
         $sql .= ' AND datetime >= "'.$_POST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_POST['klala_end'].' 23:59:59'.'" ';   
@@ -304,7 +328,7 @@ function klala_visits_by_date($table, $limit = null) {
         // handle memory
         if ($record['date'] != $lastdate) {
             $lastusers = array();
-        }        
+        }
         // compute if visit
         if ($record['date'] != $lastdate || ($record['date'] == $lastdate && !in_array($record['user'],$lastusers)) ) {
             $result[$record['date']]++;
@@ -499,10 +523,10 @@ function kl_analytics( $atts, $content = null ) {
                 }
             }
             if (!$found) { 
-                // add, with group
+                // add, with roles to populate
            	    $user_id = klala_get_id_for_username($user->user_login);
-    	        $groups = implode(",",klala_get_user_groups($klala_config['groups'], $user_id));
-                $klala_users_login_counts[] = array ('user'=>$user->user_login, 'groups'=>$groups, 'count'=> '0'); 
+    	        $roles = implode(",",klala_get_user_roles($klala_config['roles_populate'], $user_id));   	        
+                $klala_users_login_counts[] = array ('user'=>$user->user_login, 'roles'=>$roles, 'count'=> '0'); 
             }
         }
     }            
@@ -635,7 +659,12 @@ function klala_requests() {
             header("Content-Disposition: attachment; filename=".$klala_config['klala_table'].".csv");
             header("Pragma: no-cache");
             header("Expires: 0");
-            echo klutil_array_to_csv(klala_get_logs($klala_config['klala_table']));
+            $logs = klala_get_logs($klala_config['klala_table']);
+            // remove legacy groups field
+            for ($c = 0; $c < count($logs); $c++) {
+                if (isset($logs[$c]->groups)) { unset($logs[$c]->groups); }
+            }
+            echo klutil_array_to_csv($logs);
             exit();
         } else if ($_POST['klala_download'] =="clf") { 
             header("Content-type: application/force-download",true,200); // or application/force-download
