@@ -2,8 +2,8 @@
 /*
 Plugin Name: KL Access Logs Analytics
 Plugin URI: https://github.com/educate-sysadmin/kl-analytics
-Description: Wordpress plugin to provide (Combined) Common Log Format analytics (from kl-access-logs)
-Version: 0.1.1
+Description: Wordpress plugin to provide (modified) (Combined) Common Log Format analytics (from kl-access-logs)
+Version: 0.2
 Author: b.cunningham@ucl.ac.uk
 Author URI: https://educate.london
 License: GPL2
@@ -15,6 +15,9 @@ $klala_log_fields_ = array(
     'client' => $client,
     'userid' => $userid,
     'groups' => $groups,
+    'roles' => $roles,
+    'category1' => $category1,        
+    'category2' => $category2,            
     'time' => $time,
     'method' => $method,
     'request' => $request,
@@ -34,6 +37,7 @@ $klala_config = array(
     'groups' => '', // groups to merge into user-based results e.g. user logins (kl-specific) comma-delimited, defaults to get_option('klala_add_groups')    
     'klala_tables' => array('kl_access_logs','kl_access_logs_archive'), // default available (and allowed) log tables
     'klala_table' => null, // current table
+    'klala_default_day_cutoff' => 15, // if less than this, try show previous months results, else current month
 );
 
 function klala_install() {
@@ -470,7 +474,7 @@ function kl_analytics( $atts, $content = null ) {
     $title = ucfirst($title);        
     $output .= '<h2 class="klala_table_heading">'.$title.'</h2>';	
     
-    // resolve date filters, defaulting to current month
+    // resolve date filters, defaulting to current or previous month
     if (isset($_POST['klala_start'])) {
         // validation
         if (!preg_match("/\d{4}-\d{2}-\d{2}/", $_POST['klala_start']) === 0) {
@@ -479,7 +483,15 @@ function kl_analytics( $atts, $content = null ) {
         }    
     } 
     if (!isset($_POST['klala_start'])) { 
-        $_POST['klala_start'] = date("Y-m")."-"."01";         
+        if (date("d") < $klala_config['klala_default_day_cutoff']) {
+            $m = date("m"); 
+            $m -= 1; 
+            if ($m < 1) { $m = 1; }
+            if ($m < 10) { $m = "0" . (string) $m; }
+            $_POST['klala_start'] = date("Y-").$m."-"."01";
+        } else {
+            $_POST['klala_start'] = date("Y-m")."-"."01";         
+        }            
     }
     if (isset($_POST['klala_end'])) {
         if (!preg_match("/\d{4}-\d{2}-\d{2}/", $_POST['klala_end']) === 0) {
@@ -488,7 +500,16 @@ function kl_analytics( $atts, $content = null ) {
         }        
     }
     if (!isset($_POST['klala_end'])) { 
-        $_POST['klala_end'] = date("Y-m-d"); 
+        if (date("d") < $klala_config['klala_default_day_cutoff']) {
+            $m = date("m"); 
+            $m -= 1; 
+            if ($m < 1) { $m = 1; }
+            $d = cal_days_in_month(CAL_GREGORIAN,$m,date("Y"));            
+            if ($m < 10) { $m = "0" . (string) $m; }            
+            $_POST['klala_end'] = date("Y-").$m."-".$d;
+        } else {    
+            $_POST['klala_end'] = date("Y-m-d"); 
+        }
     }    
     
     // date filters
@@ -538,7 +559,7 @@ function kl_analytics( $atts, $content = null ) {
     $output .= '<h2>';
     $output .= 'Visits by date (chart)';
     $output .= '</h2>';    
-    $output .= klala_visits_by_date_chart_dhtml($table, $limit = null);
+    $output .= klala_visits_by_date_chart_dhtml($klala_config['klala_table'], $limit = null);
     $output .= '</div>';
     
     $output .= '<a name = "klala_visits_by_date_a"></a>';      
