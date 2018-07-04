@@ -21,6 +21,7 @@ function register_klala_plugin_settings() {
 	//register our settings
 	register_setting( 'klala-plugin-settings-group', 'klala_limit' );
 	register_setting( 'klala-plugin-settings-group', 'klala_downloads_monitor' ); // whether to report on downloads as provided by Downloads Monitor plugin
+	register_setting( 'klala-plugin-settings-group', 'klala_user_filter_source' );	// 'logs' || 'klal_roles_filter' // i.e. log records or klal option
 }
 
 function klala_plugin_settings_page() {
@@ -31,8 +32,7 @@ function klala_plugin_settings_page() {
     <form method="post" action="options.php">
     <?php settings_fields( 'klala-plugin-settings-group' ); ?>
     <?php do_settings_sections( 'klala-plugin-settings-group' ); ?>
-    <table class="form-table">
-           
+    <table class="form-table">          
         <tr valign="top">
         <th scope="row">Default limit</th>
         <td>
@@ -45,6 +45,17 @@ function klala_plugin_settings_page() {
         <th scope="row">Download Monitor plugin support</th>
         <td><input type="checkbox" name="klala_downloads_monitor" value="true" <?php if ( get_option('klala_downloads_monitor') ) echo ' checked '; ?> /></td>
         </tr>        
+                
+    	<tr valign="top">
+        <th scope="row">User filter source</th>        
+        <td>
+			<select name = "klala_user_filter_source">
+			<option value = "logs" if (get_option('klala_user_filter_source') == 'logs') { echo ' selected '; }>logs</option>
+			<option value = "klal_roles_filter" if (get_option('klala_user_filter_source') == 'klala_user_filter_source') { echo ' selected '; }>klal_roles_filter</option>			
+			</select>
+		</td>
+        </tr>        
+                
                 
     </table>
     

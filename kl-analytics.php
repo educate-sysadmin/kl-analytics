@@ -58,6 +58,29 @@ function klala_init() {
     if ($klala_config['roles_populate'] == '') { $klala_config['roles_populate'] = get_option('klal_add_roles'); } 
 }
 
+/* helper to get roles, with filter */
+function klala_get_role_names($filter = null) {
+	global $wp_roles;
+	if ( ! isset( $wp_roles ) ) { $wp_roles = new WP_Roles(); }
+	
+	$return = array();
+	if ($filter) { $filters = explode(",",$filter); }
+	foreach ($wp_roles->get_names() as $role) {
+		if ($filter) {
+			foreach ($filters as $f) {
+				if (strpos($role,$f) > -1) {
+					$return[] = $role;
+					break;
+				}
+			}
+		} else {
+			$return[] = $role;
+		}
+	}
+	return $return;
+}
+
+
 /* helper to get array of users' groups, with filter */
 function klala_get_user_groups($filter, $user_id) {
     global $wpdb;
@@ -106,12 +129,42 @@ function klala_get_user_roles($filter, $user_id) {
     return $return_roles; 
 }
 
+/* helper get users in role(s) */
+function klala_get_users_in_roles($roles) {
+	$args = array(
+		//'role'    => $roles,
+		'role__in' => $roles,
+	);	
+	$users = get_users( $args );
+	$return = array();	
+	foreach ( $users as $user ) {
+		$return[] = $user->user_login;
+	}
+    return $return;
+}
+
 /* helper: get user_id for username */
 function klala_get_id_for_username($username) {
     global $wpdb;    
     $sql = 'SELECT ID FROM '.$wpdb->prefix.'users WHERE user_login = "'.$username.'"';
 	$result = $wpdb->get_row($sql);
     return $result->ID;
+}
+
+/* helper: get distinct users in log */
+function klala_get_users_in_log() {
+	global $wpdb;
+	global $klala_config;
+	
+	$result = $wpdb->get_results( 
+		'SELECT DISTINCT userid FROM '.$klala_config['klala_table']
+	);	
+	
+	$return = array();
+	foreach ($result as $row) {
+		$return[] = $row->userid;
+	}
+	return $return;
 }
 
 function klala_get_logs($table) {
@@ -512,22 +565,126 @@ function kl_analytics( $atts, $content = null ) {
         }
     }    
     
-    // date filters
+    // filters
+    $output .= '<h2 style="display: inline;">Filters</h2>&nbsp;<a href="javascript: klala_toggle(\'kl-analytics-filters\');">show/hide</a>';    
+    $output .= '<div id = "kl-analytics-filters" class="kl-analytics-filters">';
     $output .= '<form action="" method="post" class="kl-analytics-filter">';
-  	$output .= '<input type="hidden" value="'.$klala_config['klala_table'].'" name="klala_table" />'; 
+	$output .= '<input type="hidden" value="'.$klala_config['klala_table'].'" name="klala_table" />';     
+    $output .= '<table>';    
+	$output .= '<tr>';   	
+	$output .= '<th>';
+	$output .= 'Dates:';
+	$output .= '</th>';	
+	$output .= '<td>';	
     $output .= 'From: ';  	  	
   	$output .= '<input type = "text" value="'.$_POST['klala_start'].'" name = "klala_start" class="kl-analytics-filter" size="12" />';
     $output .= ' to: ';
   	$output .= '<input type = "text" value="'.$_POST['klala_end'].'" name = "klala_end" class="kl-analytics-filter" size="12" />';      	
-  	$output .= '&nbsp;';
-  	$output .= '<input type = "submit" value="update" name = "submit" class="kl-analytics-filter" />';
-    $output .= '</form>';       
+	$output .= '</td>';  	
+  	$output .= '</tr>';  
+	$output .= '<tr>';   	
+	$output .= '<th>';  	
+	$output .= 'Role(s): '; 
+ 	$output .= '</th>';	
+	$output .= '<td>';	
+	$output .= '<select name = "klala_filter_roles" multiple>';
+	// use kl-access-logs settings for filter options
+	$roles = klala_get_role_names(get_option('klal_add_roles'));
+	foreach ($roles as $role) {  	
+		$output .= '<option value="'.$role.'">'.$role.'</option>';
+	}
+	$output .= '</select>';
+	$output .= '</td>';  	
+  	$output .= '</tr>';  	
+  	
+	$output .= '<tr>';   	
+	$output .= '<th>';  	
+	$output .= 'Category 1: '; 
+ 	$output .= '</th>';	
+	$output .= '<td>';	
+	$output .= '<select name = "klala_filter_category1" multiple>';
+	$categories = explode(",",get_option('klal_add_category_1'));
+	foreach ($categories as $category) {  	
+		$output .= '<option value="'.$category.'">'.$category.'</option>';
+	}
+	$output .= '</select>';
+	$output .= '</td>';  	
+  	$output .= '</tr>';  	
+  	
+	$output .= '<tr>';   	
+	$output .= '<th>';  	
+	$output .= 'Category 2: '; 
+ 	$output .= '</th>';	
+	$output .= '<td>';	
+	$output .= '<select name = "klala_filter_category2" multiple>';
+	$categories = explode(",",get_option('klal_add_category_2'));
+	foreach ($categories as $category) {  	
+		$output .= '<option value="'.$category.'">'.$category.'</option>';
+	}
+	$output .= '</select>';
+	$output .= '</td>';  	
+  	$output .= '</tr>';  	  	
 
-    /* parse log file option */
-    //$klala_log = klala_get_logs($klala_table);     
-    //$output .= klutil_array_to_table($klala_log);
+	$output .= '<tr>';   	
+	$output .= '<th>';  	
+	$output .= 'Users: '; 
+ 	$output .= '</th>';	
+	$output .= '<td>';	
+	$output .= '<select name = "klala_filter_users" multiple>';
+	$roles = array();
+	if (get_option('klala_user_filter_source') == 'klal_roles_filter' && get_option('klal_roles_filter_true') && get_option('klal_roles_filter_true') !== '') {
+		$roles = explode(",",get_option('klal_roles_filter_true'));
+	} else {
+		$users = klala_get_users_in_log();
+		// $users = klala_get_users_in_roles($roles); // could get all users
+	}
+	foreach ($users as $user) {  	
+		$output .= '<option value="'.$user.'">'.$user.'</option>';
+	}
+	$output .= '</select>';
+	$output .= '</td>';  	
+  	$output .= '</tr>';  	  	
+  	 	
+	$output .= '</table>';	
+	
+	$output .= '<p>';  	  	
+  	$output .= '<input type = "submit" value="update" name = "submit" class="kl-analytics-filter" />';
+	$output .= '</p>';  	  	
+    $output .= '</form>';  
+    $output .= '</div>';
+	$output .= '<script>';    
+	$output .= 'jQuery("#kl-analytics-filters").hide();';
+	$output .= '</script>';    	
+
+	// tab navigation // but not working bootstrap js replaced by js/..
+	$output .= '
+	<ul class="nav nav-tabs">
+	  <li class="nav-item">
+		<a class="nav-link active" href="javascript:onclick="klala_switchTab(\'overview\');">Overview</a>
+	  </li>
+	  <li class="nav-item">
+		<a class="nav-link" href="javascript:onclick="klala_switchTab(\'data\');">Data</a>
+	  </li>
+	</ul>    
+	';
+    
+    $output .= '<div id = "overview" class="klala-tab">';
+	$output .= '<h3>Overview</h3>';
+	
+	$output .= '
+	<a href="#klala_users_login_counts_a">User logins</a>
+	&nbsp;|&nbsp;
+	<a href="#klala_visits_by_date_chart_a">Visits by date</a>
+	&nbsp;|&nbsp;
+	<a href="#klala_page_visits_a">Page visits</a>
+	&nbsp;|&nbsp;
+	<a href="#klala_page_hits_a">Page hits</a>
+	&nbsp;|&nbsp;
+	<a href="#klala_downloads_a">Media and downloads</a>
+	';
 
     /* add analytics sections */        
+        
     $output .= '<a name = "klala_users_login_counts_a"></a>';              
     $output .= '<div class="klala klala_users_login_counts" id = "klala_users_login_counts">';
     $output .= '<h2>'.'User logins'.'</h2>';
@@ -617,37 +774,39 @@ function kl_analytics( $atts, $content = null ) {
         }
     }
     
+    wp_enqueue_style('kl-analytics-css', plugins_url('css/kl-analytics.css',__FILE__ ));
+    
+    // add google charts
+    $output .= klala_init_google_charts();
+    
+    $output .= '</div>'; // overview
+    
+    $output .= '<div id = "data" class="klala-tab">';
+    $output .= '<h3>Data</h3>';
+    
+	/* parse log file option */
+    $klala_log = klala_get_logs($klala_config['klala_table']);
+    $output .= klutil_array_to_table($klala_log,'klala_data_table');
+    
     // download options
     $output .= '<div class="klala klala_download_options">';
     $output .= '<h2>'.'Download'.'</h2>';    
-    /* .xlsx doesn't work
-    $output .= '<form action="" method="post" class="kl-analytics-download">';
-	// nonce: this is a WordPress security feature - see: https://codex.wordpress.org/WordPress_Nonces
-	// $output .= wp_nonce_field('klala_nonce'); // todo
-  	$output .= '<input type="hidden" value="xlsx" name="klala_download" />';
-  	$output .= '<input type="hidden" value="'.$klala_config['klala_table'].'" name="klala_table" />'; 
-  	$output .= '<input type = "submit" value="Download log file (.xlsx)" name = "submit" />';
-    $output .= '</form>';        
-    */
     $output .= '<form action="" method="post" class="kl-analytics-download">';
   	$output .= '<input type="hidden" value="csv" name="klala_download" />';
   	$output .= '<input type="hidden" value="'.$klala_config['klala_table'].'" name="klala_table" />'; 
   	$output .= '<input type = "submit" value="download .csv" name = "submit" class="kl-analytics-download" />';
-    $output .= '</form>';     
+    $output .= '</form>';
     $output .= '&nbsp;|&nbsp;';            
     $output .= '<form action="" method="post" class="kl-analytics-download">';
   	$output .= '<input type="hidden" value="clf" name="klala_download" />';
   	$output .= '<input type="hidden" value="'.$klala_config['klala_table'].'" name="klala_table" />'; 
   	$output .= '<input type = "submit" value="download .clf" name = "submit" class="kl-analytics-download" />';
     $output .= '</form>';
-    $output .= '</div>';    
+    $output .= '</div>';     
     
-       
-    wp_enqueue_style('kl-analytics-css', plugins_url('css/kl-analytics.css',__FILE__ ));
+    $output .= '</div>'; // data
     
-    // add google charts
-    $output .= klala_init_google_charts();
-    
+    wp_enqueue_script('kl-analytics-js', plugins_url('js/kl-analytics.js',__FILE__ ));    
        
 	return $output;    
 }

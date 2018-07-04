@@ -1,8 +1,11 @@
-form.kl-analytics-download {
+.nav-tabs { margin: 0 0 0 0; }
+
+.kl-analytics-filters { margin-bottom: 1em; font-size: 85%; }
+
+form.kl-analytics-download, input.kl-analytics-download {
     display: inline;
 }
-input.kl-analytics-download, input[type="submit"].kl-analytics-filter {
-    display: inline;
+input.kl-analytics-download, input[type="submit"].kl-analytics-filter {    
     padding-top: 0.3em;
     padding-bottom: 0.3em;        
 }
