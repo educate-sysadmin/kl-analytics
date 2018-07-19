@@ -3,7 +3,7 @@
 Plugin Name: KL Access Logs Analytics
 Plugin URI: https://github.com/educate-sysadmin/kl-analytics
 Description: Wordpress plugin to provide (modified) (Combined) Common Log Format analytics (from kl-access-logs)
-Version: 0.3
+Version: 0.3.1
 Author: b.cunningham@ucl.ac.uk
 Author URI: https://educate.london
 License: GPL2
@@ -174,8 +174,8 @@ function klala_get_logs($table) {
     if (strpos($table,$wpdb->prefix) === false) { $table = $wpdb->prefix.$table; }
     
     $sql = 'SELECT * FROM '.$table;
-    if (isset($_POST['klala_start']) && isset($_POST['klala_end'])) {
-        $sql .= ' WHERE datetime >= "'.$_POST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_POST['klala_end'].' 23:59:59'.'"';   
+    if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
+        $sql .= ' WHERE datetime >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_REQUEST['klala_end'].' 23:59:59'.'"';   
     }
  	
  	// get results
@@ -251,7 +251,7 @@ if (!function_exists('klutil_array_to_table')) {
         foreach ($array as $row) {
             $output .= '<tr>';
             foreach ($row as $key => $val) {
-                $output .= '<td class="th_'.$key.'">'.($val!==''?$val:'&nbsp;').'</td>'."\n";
+                $output .= '<td class="td_'.$key.'">'.($val!==''?$val:'&nbsp;').'</td>'."\n";
             }
             $output .= '</tr>'."\n";
         }
@@ -269,10 +269,14 @@ function klala_user_logins($table, $limit = null) {
     
     $sql = 'SELECT userid AS`user`, roles, count(userid) AS `count` FROM '.$table;
     $sql .= ' WHERE referer LIKE "%login%" ';
-    if (isset($_POST['klala_start']) && isset($_POST['klala_end'])) {
-        $sql .= ' AND datetime >= "'.$_POST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_POST['klala_end'].' 23:59:59'.'" ';   
+    if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
+        $sql .= ' AND datetime >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
     }
     $sql .= ' GROUP BY userid ORDER BY count(userid) DESC';
+    if ($limit) {
+		$sql .= ' LIMIT '.$limit;
+	}
+	
        
  	// get results
 	$result = $wpdb->get_results( 
@@ -288,8 +292,8 @@ function klala_page_hits($table, $limit = null ) {
     global $klala_config;    
     
     $sql = 'SELECT request AS`page`, count(request) AS `hits` FROM '.$table;
-    if (isset($_POST['klala_start']) && isset($_POST['klala_end'])) {
-        $sql .= ' WHERE datetime >= "'.$_POST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_POST['klala_end'].' 23:59:59'.'" ';   
+    if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
+        $sql .= ' WHERE datetime >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
     }        
     $sql .= ' GROUP BY page ORDER BY count(request) DESC';
     if ($limit > 0) {
@@ -311,8 +315,8 @@ function klala_page_hits_by_user_and_date($table, $limit = null, $order_by = 'co
     global $klala_config;    
     
     $sql = 'SELECT request AS`page`, SUBSTRING(`datetime`,1,10) as `date`, `userid` as `user`, count(request) AS `hits` FROM '.$table;
-    if (isset($_POST['klala_start']) && isset($_POST['klala_end'])) {
-        $sql .= ' WHERE datetime >= "'.$_POST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_POST['klala_end'].' 23:59:59'.'" ';   
+    if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
+        $sql .= ' WHERE datetime >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
     }        
     $sql .= ' GROUP BY page, date, user ORDER BY '.$order_by;
     if ($limit > 0) {
@@ -459,8 +463,8 @@ function klala_downloads_summary($table, $limit = null) {
     
     $sql = 'SELECT request AS `download`, count(request) AS `count` FROM '.$table;
     $sql .= ' WHERE request LIKE "%download%" ';    
-    if (isset($_POST['klala_start']) && isset($_POST['klala_end'])) {
-        $sql .= ' AND datetime >= "'.$_POST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_POST['klala_end'].' 23:59:59'.'" ';   
+    if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
+        $sql .= ' AND datetime >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
     }        
     $sql .= ' GROUP BY download ORDER BY count(request) DESC';
     if ($limit > 0) {
@@ -496,25 +500,25 @@ function klala_downloads($table, $limit = null) {
     
     $sql = 'SELECT category1, category2, roles, userid, request AS `download`, referer, count(request) AS `count` FROM '.$table;
     $sql .= ' WHERE request LIKE "%download%" ';
-    if (isset($_POST['klala_start']) && isset($_POST['klala_end'])) {
-        $sql .= ' AND datetime >= "'.$_POST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_POST['klala_end'].' 23:59:59'.'" ';   
+    if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
+        $sql .= ' AND datetime >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
     }
-    if (isset($_POST['klala_start']) && isset($_POST['klala_end'])) {
-        $sql .= ' AND datetime >= "'.$_POST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_POST['klala_end'].' 23:59:59'.'" ';   
+    if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
+        $sql .= ' AND datetime >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
     }
-    if (isset($_POST['klala_filter_roles'])) {
+    if (isset($_REQUEST['klala_filter_roles'])) {
 		$sql .= ' AND (';
-		for ($c = 0; $c < count($_POST['klala_filter_roles']); $c++) {
-			$sql .= ' roles LIKE "%'.$_POST['klala_filter_roles'][$c].'%" ';
-			if ($c < count($_POST['klala_filter_roles']) - 1) { $sql .= ' OR '; }
+		for ($c = 0; $c < count($_REQUEST['klala_filter_roles']); $c++) {
+			$sql .= ' roles LIKE "%'.$_REQUEST['klala_filter_roles'][$c].'%" ';
+			if ($c < count($_REQUEST['klala_filter_roles']) - 1) { $sql .= ' OR '; }
 		}
 		$sql .= ' )';		
     }        
-    if (isset($_POST['klala_filter_users'])) {
+    if (isset($_REQUEST['klala_filter_users'])) {
 		$sql .= ' AND (';
-		for ($c = 0; $c < count($_POST['klala_filter_users']); $c++) {
-			$sql .= ' userid LIKE "%'.$_POST['klala_filter_users'][$c].'%" ';
-			if ($c < count($_POST['klala_filter_users']) - 1) { $sql .= ' OR '; }
+		for ($c = 0; $c < count($_REQUEST['klala_filter_users']); $c++) {
+			$sql .= ' userid LIKE "%'.$_REQUEST['klala_filter_users'][$c].'%" ';
+			if ($c < count($_REQUEST['klala_filter_users']) - 1) { $sql .= ' OR '; }
 		}
 		$sql .= ' )';		
     }
@@ -531,7 +535,7 @@ function klala_downloads($table, $limit = null) {
 	);
 	
 	// resolve download id's to file names
-	// and merge categories, using klal functions
+	// and merge categories if necessary, using klal functions
 	// and filter into new array for return
 	$return = array();
     for ($c = 0; $c < count($result); $c++) {
@@ -542,13 +546,13 @@ function klala_downloads($table, $limit = null) {
             if ($post) {
                 $result[$c]['download'] = $post->post_title;
             }
-			// merge categories (from request field)
-			if (get_option('klal_add_category_1') && get_option('klal_add_category_1') != '') {
+			// merge categories if necessary (from request field)
+			if ($result[$c]['category1'] == '' && get_option('klal_add_category_1') && get_option('klal_add_category_1') != '') {
 				$post_id = klal_get_post_id($result[$c]['referer']);
 				$category1 = implode(",",klal_get_categories( get_option('klal_add_category_1'), $post_id));
 				$result[$c]['category1'] = $category1;
 			}            	    
-			if (get_option('klal_add_category_2') && get_option('klal_add_category_2') != '') {
+			if ($result[$c]['category2'] == '' && get_option('klal_add_category_2') && get_option('klal_add_category_2') != '') {
 				if (!$post_id) { $post_id = klal_get_post_id($result[$c]['referer']); }
 				$category2 = implode(",",klal_get_categories( get_option('klal_add_category_2'), $post_id));
 				$result[$c]['category2'] = $category2;
@@ -559,14 +563,14 @@ function klala_downloads($table, $limit = null) {
         
         $include = true;
         // add category filters now      
-		if (isset($_POST['klala_filter_category1']) && isset($result[$c]['category1'])) {
-			if (!in_array($result[$c]['category1'], $_POST['klala_filter_category1'])) {
+		if (isset($_REQUEST['klala_filter_category1']) && isset($result[$c]['category1'])) {
+			if (!in_array($result[$c]['category1'], $_REQUEST['klala_filter_category1'])) {
 				//unset($result[$c]);
 				$include = false;
 			}
 		}
-		if (isset($_POST['klala_filter_category2']) && isset($result[$c]['category2'])) {
-			if (!in_array($result[$c]['category2'], $_POST['klala_filter_category2'])) {
+		if (isset($_REQUEST['klala_filter_category2']) && isset($result[$c]['category2'])) {
+			if (!in_array($result[$c]['category2'], $_REQUEST['klala_filter_category2'])) {
 				//unset($result[$c]);
 				$include = false;
 			}
@@ -581,56 +585,61 @@ function klala_downloads($table, $limit = null) {
     return $return;
 }
 
-function klala_show_filters($show = array('start','end','roles','category1','category2','users')) {
+function klala_show_filters($show = array('start','end','roles','category1','category2','users','limit')) {
 	$output = '';
 	$output .= '<div class = "klala_filters_info">';
 	$output .= '<ul>';
-	if (isset($_POST['klala_start']) && in_array('start',$show)) {
+	if (isset($_REQUEST['klala_start']) && in_array('start',$show)) {
 		$output.= '<li class="klala_filters_info_start">';
-		$output .= 'Start: '. $_POST['klala_start'];
+		$output .= 'Start: '. $_REQUEST['klala_start'];
 		$output .= '</li>';
 	}
-	if (isset($_POST['klala_end']) && in_array('end',$show)) {
+	if (isset($_REQUEST['klala_end']) && in_array('end',$show)) {
 		$output.= '<li class="klala_filters_info_end">';
-		$output .= 'End: '. $_POST['klala_end'];
+		$output .= 'End: '. $_REQUEST['klala_end'];
 		$output .= '</li>';
 	}	
-	if (isset($_POST['klala_filter_roles']) && in_array('roles',$show)) {
+	if (isset($_REQUEST['klala_filter_roles']) && in_array('roles',$show)) {
 		$output.= '<li class="klala_filters_info_roles">';
 		$output .= 'Roles: ';
-		for ($c = 0; $c < count($_POST['klala_filter_roles']); $c++) {
-			$output .= $_POST['klala_filter_roles'][$c];
-			if ($c < count($_POST['klala_filter_roles']) - 1) { $output .= ', '; }
+		for ($c = 0; $c < count($_REQUEST['klala_filter_roles']); $c++) {
+			$output .= $_REQUEST['klala_filter_roles'][$c];
+			if ($c < count($_REQUEST['klala_filter_roles']) - 1) { $output .= ', '; }
 		}
 		$output .= '</li>';
 	}
-	if (isset($_POST['klala_filter_category1']) && in_array('category1',$show)) {
+	if (isset($_REQUEST['klala_filter_category1']) && in_array('category1',$show)) {
 		$output.= '<li class="klala_filters_info_category1">';
 		$output .= 'Category 1: ';
-		for ($c = 0; $c < count($_POST['klala_filter_category1']); $c++) {
-			$output .= $_POST['klala_filter_category1'][$c];
-			if ($c < count($_POST['klala_filter_category1']) - 1) { $output .= ', '; }
+		for ($c = 0; $c < count($_REQUEST['klala_filter_category1']); $c++) {
+			$output .= $_REQUEST['klala_filter_category1'][$c];
+			if ($c < count($_REQUEST['klala_filter_category1']) - 1) { $output .= ', '; }
 		}
 		$output .= '</li>';
 	}
-	if (isset($_POST['klala_filter_category2']) && in_array('category2',$show)) {
+	if (isset($_REQUEST['klala_filter_category2']) && in_array('category2',$show)) {
 		$output.= '<li class="klala_filters_info_category2">';
 		$output .= 'Category 2: ';
-		for ($c = 0; $c < count($_POST['klala_filter_category2']); $c++) {
-			$output .= $_POST['klala_filter_category2'][$c];
-			if ($c < count($_POST['klala_filter_category2']) - 1) { $output .= ', '; }
+		for ($c = 0; $c < count($_REQUEST['klala_filter_category2']); $c++) {
+			$output .= $_REQUEST['klala_filter_category2'][$c];
+			if ($c < count($_REQUEST['klala_filter_category2']) - 1) { $output .= ', '; }
 		}
 		$output .= '</li>';
 	}	
-	if (isset($_POST['klala_filter_users']) && in_array('users',$show)) {
+	if (isset($_REQUEST['klala_filter_users']) && in_array('users',$show)) {
 		$output.= '<li class="klala_filters_info_users">';
 		$output .= 'Users: ';
-		for ($c = 0; $c < count($_POST['klala_filter_users']); $c++) {
-			$output .= $_POST['klala_filter_users'][$c];
-			if ($c < count($_POST['klala_filter_users']) - 1) { $output .= ', '; }
+		for ($c = 0; $c < count($_REQUEST['klala_filter_users']); $c++) {
+			$output .= $_REQUEST['klala_filter_users'][$c];
+			if ($c < count($_REQUEST['klala_filter_users']) - 1) { $output .= ', '; }
 		}
 		$output .= '</li>';
 	}	
+	if (isset($_REQUEST['klala_limit']) && in_array('limit',$show)) {
+		$output.= '<li class="klala_filters_info_limit">';
+		$output .= 'Limit: '. $_REQUEST['klala_limit'];
+		$output .= '</li>';
+	}		
 	$output .= '</ul>';
 	$output .= '</div>';
 	return $output;
@@ -657,8 +666,8 @@ function kl_analytics( $atts, $content = null ) {
 	} 
     
     // check for post'ed table
-    if (isset($_POST['klala_table']) && in_array($_POST['klala_table'],$klala_config['klala_tables'])) {
-        $klala_config['klala_table'] = $_POST['klala_table'];
+    if (isset($_REQUEST['klala_table']) && in_array($_REQUEST['klala_table'],$klala_config['klala_tables'])) {
+        $klala_config['klala_table'] = $_REQUEST['klala_table'];
     }      
     // wp prefix
     if (strpos($wpdb->prefix, $klala_config['klala_table']) === false) {
@@ -677,70 +686,70 @@ function kl_analytics( $atts, $content = null ) {
     $output .= '<p><a href="./">Reset</a></p>';
     
     // resolve date filters, defaulting to current or previous month
-    if (isset($_POST['klala_start'])) {
+    if (isset($_REQUEST['klala_start'])) {
         // validation
-        if (!preg_match("/\d{4}-\d{2}-\d{2}/", $_POST['klala_start']) === 0) {
+        if (!preg_match("/\d{4}-\d{2}-\d{2}/", $_REQUEST['klala_start']) === 0) {
             $output .= '<p>'.'Invalid request'.'</p>';
-            unset($_POST['klala_start']);
+            unset($_REQUEST['klala_start']);
         }    
     } 
-    if (!isset($_POST['klala_start'])) { 
+    if (!isset($_REQUEST['klala_start'])) { 
         if (date("d") < $klala_config['klala_default_day_cutoff']) {
             $m = date("m"); 
             $m -= 1; 
             if ($m < 1) { $m = 1; }
             if ($m < 10) { $m = "0" . (string) $m; }
-            $_POST['klala_start'] = date("Y-").$m."-"."01";
+            $_REQUEST['klala_start'] = date("Y-").$m."-"."01";
         } else {
-            $_POST['klala_start'] = date("Y-m")."-"."01";         
+            $_REQUEST['klala_start'] = date("Y-m")."-"."01";         
         }            
     }
-    if (isset($_POST['klala_end'])) {
-        if (!preg_match("/\d{4}-\d{2}-\d{2}/", $_POST['klala_end']) === 0) {
+    if (isset($_REQUEST['klala_end'])) {
+        if (!preg_match("/\d{4}-\d{2}-\d{2}/", $_REQUEST['klala_end']) === 0) {
             $output .= '<p>'.'Invalid request'.'</p>';
-            unset($_POST['klala_end']); 
+            unset($_REQUEST['klala_end']); 
         }        
     }
-    if (!isset($_POST['klala_end'])) { 
+    if (!isset($_REQUEST['klala_end'])) { 
         if (date("d") < $klala_config['klala_default_day_cutoff']) {
             $m = date("m"); 
             $m -= 1; 
             if ($m < 1) { $m = 1; }
             $d = cal_days_in_month(CAL_GREGORIAN,$m,date("Y"));            
             if ($m < 10) { $m = "0" . (string) $m; }            
-            $_POST['klala_end'] = date("Y-").$m."-".$d;
+            $_REQUEST['klala_end'] = date("Y-").$m."-".$d;
         } else {    
-            $_POST['klala_end'] = date("Y-m-d"); 
+            $_REQUEST['klala_end'] = date("Y-m-d"); 
         }
     }
     
     // validate roles filter
 	$roles = klala_get_role_names(get_option('klal_add_roles'));
-    if (isset($_POST['klala_filter_roles'])) {
-		foreach ($_POST['klala_filter_roles'] as $role_filter) {
+    if (isset($_REQUEST['klala_filter_roles'])) {
+		foreach ($_REQUEST['klala_filter_roles'] as $role_filter) {
 			if (!in_array($role_filter, $roles)) {
 				$output .= '<p>'.'Invalid request'.'</p>';
-				unset($_POST['klala_filter_roles']); 
+				unset($_REQUEST['klala_filter_roles']); 
 			}
 		}
 	}    
 	
 	// validate category filters
 	$categories = explode(",",get_option('klal_add_category_1'));
-    if (isset($_POST['klala_filter_category1'])) {
-		foreach ($_POST['klala_filter_category1'] as $category_filter) {
+    if (isset($_REQUEST['klala_filter_category1'])) {
+		foreach ($_REQUEST['klala_filter_category1'] as $category_filter) {
 			if (!in_array($category_filter, $categories)) {
 				$output .= '<p>'.'Invalid request'.'</p>';
-				unset($_POST['klala_filter_category1']); 
+				unset($_REQUEST['klala_filter_category1']); 
 			}
 		}
 	}	
 	$categories = explode(",",get_option('klal_add_category_2'));
-    if (isset($_POST['klala_filter_category2'])) {
-		foreach ($_POST['klala_filter_category2'] as $category_filter) {
+    if (isset($_REQUEST['klala_filter_category2'])) {
+		foreach ($_REQUEST['klala_filter_category2'] as $category_filter) {
 			if (!in_array($category_filter, $categories)) {
 				$output .= '<p>'.'Invalid request'.'</p>';
-				unset($_POST['klala_filter_category2']); 
+				unset($_REQUEST['klala_filter_category2']); 
 			}
 		}
 	}		
@@ -753,14 +762,27 @@ function kl_analytics( $atts, $content = null ) {
 	} else {
 		$users = klala_get_users_in_log();
 	}
-    if (isset($_POST['klala_filter_users'])) {
-		foreach ($_POST['klala_filter_users'] as $user_filter) {
+    if (isset($_REQUEST['klala_filter_users'])) {
+		foreach ($_REQUEST['klala_filter_users'] as $user_filter) {
 			if (!in_array($user_filter, $users)) {
 				$output .= '<p>'.'Invalid request'.'</p>';
-				unset($_POST['klala_filter_users']); 
+				unset($_REQUEST['klala_filter_users']); 
 			}
 		}
 	}		
+	
+	// validate limit
+	if (isset($_REQUEST['klala_limit'])) {
+		if (!is_numeric($_REQUEST['klala_limit'])) {
+			$output .= '<p>'.'Invalid request'.'</p>';
+			unset($_REQUEST['klala_limit']); 
+		}
+	}
+	
+	// resolve limit
+	if (!isset($_REQUEST['klala_limit'])) {
+		$_REQUEST['klala_limit'] = get_option('klala_limit');
+	}	
     
     // filter controls
     $output .= '<div class="accordion">';
@@ -776,9 +798,9 @@ function kl_analytics( $atts, $content = null ) {
 	$output .= '</th>';	
 	$output .= '<td>';	
     $output .= 'From: ';  	  	
-  	$output .= '<input type = "text" value="'.$_POST['klala_start'].'" name = "klala_start" class="kl-analytics-filter" size="12" />';
+  	$output .= '<input type = "text" value="'.$_REQUEST['klala_start'].'" name = "klala_start" class="kl-analytics-filter" size="12" />';
     $output .= ' to: ';
-  	$output .= '<input type = "text" value="'.$_POST['klala_end'].'" name = "klala_end" class="kl-analytics-filter" size="12" />';      	
+  	$output .= '<input type = "text" value="'.$_REQUEST['klala_end'].'" name = "klala_end" class="kl-analytics-filter" size="12" />';      	
 	$output .= '</td>';  	
   	$output .= '</tr>';  
 	$output .= '<tr>';   	
@@ -791,7 +813,7 @@ function kl_analytics( $atts, $content = null ) {
 	$roles = klala_get_role_names(get_option('klal_add_roles'));		
 	foreach ($roles as $role) {  	
 		$output .= '<option value="'.$role.'"';
-		if (isset($_POST['klala_filter_roles']) && in_array($role, $_POST['klala_filter_roles'])) {
+		if (isset($_REQUEST['klala_filter_roles']) && in_array($role, $_REQUEST['klala_filter_roles'])) {
 			$output .= ' selected '; // not working ??
 		}		
 		$output .= '>'.$role.'</option>';
@@ -809,7 +831,7 @@ function kl_analytics( $atts, $content = null ) {
 	$categories = explode(",",get_option('klal_add_category_1'));
 	foreach ($categories as $category) {  	
 		$output .= '<option value="'.$category.'"';
-		if (isset($_POST['klala_filter_category1']) && in_array($category, $_POST['klala_filter_category1'])) {
+		if (isset($_REQUEST['klala_filter_category1']) && in_array($category, $_REQUEST['klala_filter_category1'])) {
 			$output .= ' selected ';
 		}
 		$output .= '>'.$category.'</option>';
@@ -827,7 +849,7 @@ function kl_analytics( $atts, $content = null ) {
 	$categories = explode(",",get_option('klal_add_category_2'));
 	foreach ($categories as $category) {  	
 		$output .= '<option value="'.$category.'"';
-		if (isset($_POST['klala_filter_category2']) && in_array($category, $_POST['klala_filter_category2'])) {
+		if (isset($_REQUEST['klala_filter_category2']) && in_array($category, $_REQUEST['klala_filter_category2'])) {
 			$output .= ' selected ';
 		}		
 		$output .= '>'.$category.'</option>';
@@ -851,14 +873,23 @@ function kl_analytics( $atts, $content = null ) {
 	}
 	foreach ($users as $user) {  	
 		$output .= '<option value="'.$user.'"';
-		if (isset($_POST['klala_filter_users']) && in_array($user, $_POST['klala_filter_users'])) {
+		if (isset($_REQUEST['klala_filter_users']) && in_array($user, $_REQUEST['klala_filter_users'])) {
 			$output .= ' selected ';
 		}		
 		$output .= '>'.$user.'</option>';
 	}
 	$output .= '</select>';
 	$output .= '</td>';  	
-  	$output .= '</tr>';  	  	
+  	$output .= '</tr>';  	  
+  	
+  	$output .= '<tr>';
+  	$output .= '<th>';
+  	$output .= 'Limit: ';
+	$output .= '</th>';  	  	  	
+  	$output .= '<td>';
+  	$output .= '<input type = "text" value="'.$_REQUEST['klala_limit'].'" name = "klala_limit" class="kl-analytics-filter" size="3" />';
+	$output .= '</td>';  	  	
+  	$output .= '</tr>';
   	 	
 	$output .= '</table>';	
 	
@@ -901,9 +932,11 @@ function kl_analytics( $atts, $content = null ) {
         
     $output .= '<a name = "klala_users_login_counts_a"></a>';              
     $output .= '<div class="klala klala_users_login_counts" id = "klala_users_login_counts">';
-    $output .= '<h4>'.'User logins'.'</h4>';
-    $output .= klala_show_filters(array('start','end'));
-    $klala_users_login_counts = klala_user_logins($klala_config['klala_table'],'klala_table'); 
+    $output .= '<h4>'.'User logins';
+    if ((int) $_REQUEST['klala_limit'] > 0) { $output .= ' ('.'top '.$_REQUEST['klala_limit'].')'; }
+    $output .= '</h4>';
+    $output .= klala_show_filters(array('start','end','limit'));
+    $klala_users_login_counts = klala_user_logins($klala_config['klala_table'],$_REQUEST['klala_limit']); 
     
     // merge other roles if set i.e. to show those that haven't logged in too    
     if (!empty($klala_config['roles'])) {
@@ -932,7 +965,7 @@ function kl_analytics( $atts, $content = null ) {
     $output .= 'Visits by date (chart)';
     $output .= '</h4>';
     $output .= klala_show_filters(array('start','end'));
-    $output .= klala_visits_by_date_chart_dhtml($klala_config['klala_table'], $limit = null);
+    $output .= klala_visits_by_date_chart_dhtml($klala_config['klala_table']);
     $output .= '</div>';
     
     $output .= '<a name = "klala_visits_by_date_a"></a>';      
@@ -940,7 +973,7 @@ function kl_analytics( $atts, $content = null ) {
     $output .= '<h4>';
     $output .= 'Visits by date';
     $output .= '</h4>';
-	$output .= klala_show_filters(array('start','end'));    
+    $output .= klala_show_filters(array('start','end','limit'));
     $klala_visits_by_date = klala_visits_by_date($klala_config['klala_table']/*, no_limit*/); 
     $output .= klutil_array_to_table($klala_visits_by_date,'klala_visits_by_date_table','klala_table');
     $output .= '</div>';        
@@ -949,10 +982,10 @@ function kl_analytics( $atts, $content = null ) {
     $output .= '<div class="klala klala_page_hits_by_user_and_date" id="klala_page_hits_by_user_and_date">';
     $output .= '<h4>';
     $output .= 'Pages by users and dates';
-    if ((int) get_option('klala_limit') > 0) { $output .= ' ('.'top '.get_option('klala_limit').')'; }
+    if ((int) $_REQUEST['klala_limit'] > 0) { $output .= ' ('.'top '.$_REQUEST['klala_limit'].')'; }
     $output .= '</h4>';
-	$output .= klala_show_filters(array('start','end'));    
-    $klala_page_hits_by_user_and_date = klala_page_hits_by_user_and_date($klala_config['klala_table'], get_option('klala_limit')); 
+    $output .= klala_show_filters(array('start','end','limit'));
+    $klala_page_hits_by_user_and_date = klala_page_hits_by_user_and_date($klala_config['klala_table'], $_REQUEST['klala_limit']); 
     $output .= klutil_array_to_table($klala_page_hits_by_user_and_date,'klala_page_hits_by_user_and_date_table','klala_table');
     $output .= '</div>';
 
@@ -960,11 +993,11 @@ function kl_analytics( $atts, $content = null ) {
     $output .= '<div class="klala klala_page_visits" id = "klala_page_visits">';
     $output .= '<h4>';
     $output .= 'Page visits';
-    if ((int) get_option('klala_limit') > 0) { $output .= ' ('.'top '.get_option('klala_limit').')'; }
+    if ((int) $_REQUEST['klala_limit'] > 0) { $output .= ' ('.'top '.$_REQUEST['klala_limit'].')'; }
     $output .= '</h4>';
-	$output .= klala_show_filters(array('start','end'));    
+    $output .= klala_show_filters(array('start','end','limit'));
     $output .= '<p>'.'Pages visited by different users or on different days.'.'</p>';
-    $klala_page_visits = klala_page_visits($klala_config['klala_table'], get_option('klala_limit')); 
+    $klala_page_visits = klala_page_visits($klala_config['klala_table'], $_REQUEST['klala_limit']); 
     $output .= klutil_array_to_table($klala_page_visits,'klala_page_visits_table','klala_table');
     $output .= '</div>';
     
@@ -972,10 +1005,10 @@ function kl_analytics( $atts, $content = null ) {
     $output .= '<div class="klala klala_page_hits" id="klala_page_hits">';
     $output .= '<h4>';
     $output .= 'Page hits';
-    if ((int) get_option('klala_limit') > 0) { $output .= ' ('.'top '.get_option('klala_limit').')'; }
+    if ((int) $_REQUEST['klala_limit'] > 0) { $output .= ' ('.'top '.$_REQUEST['klala_limit'].')'; }
     $output .= '</h4>';
-	$output .= klala_show_filters(array('start','end'));    
-    $klala_page_hits = klala_page_hits($klala_config['klala_table'], get_option('klala_limit')); 
+    $output .= klala_show_filters(array('start','end','limit'));
+    $klala_page_hits = klala_page_hits($klala_config['klala_table'], $_REQUEST['klala_limit']); 
     $output .= klutil_array_to_table($klala_page_hits,'klala_page_hits_table','klala_table');
     $output .= '</div>';    
     
@@ -987,10 +1020,10 @@ function kl_analytics( $atts, $content = null ) {
             $output .= '<div class="klala klala_downloads" id ="klala_downloads">';
             $output .= '<h4>';
             $output .= 'Media and downloads';
-            if ((int) get_option('klala_limit') > 0) { $output .= ' ('.'top '.get_option('klala_limit').')'; }
+            if ((int) $_REQUEST['klala_limit'] > 0) { $output .= ' ('.'top '.$_REQUEST['klala_limit'].')'; }
             $output .= '</h4>';
-			$output .= klala_show_filters(array('start','end','roles','users'));
-            $klala_downloads = klala_downloads($klala_config['klala_table'], get_option('klala_limit')); 
+			$output .= klala_show_filters(array('start','end','roles','users','limit'));
+            $klala_downloads = klala_downloads($klala_config['klala_table'], $_REQUEST['klala_limit']); 
             if ($klala_downloads) {
 				$output .= klutil_array_to_table($klala_downloads,'klala_downloads_table','klala_table');
 			} else {
@@ -1044,24 +1077,24 @@ function klala_requests() {
     global $wpdb;
     global $klala_config;
     
-    if (isset($_POST['klala_download']) /* && wp_verify_nonce('klala_nonce')*/) {
+    if (isset($_REQUEST['klala_download']) /* && wp_verify_nonce('klala_nonce')*/) {
     
         // resolve table 
-        if (isset($_POST['klala_table']) && in_array(str_replace($wpdb->prefix,'',$_POST['klala_table']),$klala_config['klala_tables'])) {
-            $klala_config['klala_table'] = $_POST['klala_table'];
+        if (isset($_REQUEST['klala_table']) && in_array(str_replace($wpdb->prefix,'',$_REQUEST['klala_table']),$klala_config['klala_tables'])) {
+            $klala_config['klala_table'] = $_REQUEST['klala_table'];
         } else {
             echo '<p>'.'Invalid request'.'</p>';
             exit();
         }
     
-        if ($_POST['klala_download'] =="xlsx") {  // doesn't work
+        if ($_REQUEST['klala_download'] =="xlsx") {  // doesn't work
             header("Content-type: application/force-download",true,200); // or application/force-download
             header("Content-Disposition: attachment; filename=".$klala_config['klala_table'].".xlsx");
             header("Pragma: no-cache");
             header("Expires: 0");
             echo klutil_array_to_table(klala_get_logs($klala_config['klala_table']));
             exit();
-        } else if ($_POST['klala_download'] =="csv") { 
+        } else if ($_REQUEST['klala_download'] =="csv") { 
             header("Content-type: application/force-download",true,200); // or application/force-download
             header("Content-Disposition: attachment; filename=".$klala_config['klala_table'].".csv");
             header("Pragma: no-cache");
@@ -1073,7 +1106,7 @@ function klala_requests() {
             }
             echo klutil_array_to_csv($logs);
             exit();
-        } else if ($_POST['klala_download'] =="clf") { 
+        } else if ($_REQUEST['klala_download'] =="clf") { 
             header("Content-type: application/force-download",true,200); // or application/force-download
             header("Content-Disposition: attachment; filename=".$klala_config['klala_table'].".clf");
             header("Pragma: no-cache");
