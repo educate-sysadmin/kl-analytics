@@ -11,6 +11,7 @@ function klala_switchTab(id) {
 	klala_showTab(id);
 }
 
+/*
 function klala_toggle(id) {
 	if (document.getElementById(id).style.display != "block") {
 		document.getElementById(id).style.display = "block";
@@ -18,6 +19,21 @@ function klala_toggle(id) {
 	} else {
 		document.getElementById(id).style.display = "none";
 		document.getElementById(id).className = "closed";				
+	}
+}
+* */
+
+// hacky accordion
+function klala_accordion_toggle(link, target) {	
+	var link = jQuery('#'+link);
+	if (link.hasClass('open')) {
+		link.removeClass('open');
+		link.addClass('closed');
+		jQuery('#'+target).hide();
+	} else {
+		link.removeClass('closed');
+		link.addClass('open');
+		jQuery('#'+target).show();
 	}
 }
 

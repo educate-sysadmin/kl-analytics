@@ -10,3 +10,9 @@ input.kl-analytics-download, input[type="submit"].kl-analytics-filter {
     padding-bottom: 0.3em;        
 }
 
+/* haccordion open/close */
+.open:before { content: '▾ '; }
+.closed:before { content: '► '; }
+
+.klala_filters_info { font-size: small; }
+.klala_filters_info li { list-style-type: none; }
