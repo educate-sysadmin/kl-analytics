@@ -32,7 +32,7 @@ require_once('kl-analytics-options.php');
 
 /* backend configs */
 $klala_config = array(
-    'roles' => array(), // roles to merge into user-based results e.g. user logins (kl-specific)
+    'roles' => array('test'), // roles to merge into user-based results e.g. user logins (kl-specific)
     'roles_populate' => '', // roles to populate roles field with when merging (kl-specific)
     'groups' => '', // groups to merge into user-based results e.g. user logins (kl-specific) comma-delimited, defaults to get_option('klala_add_groups')    
     'klala_tables' => array('kl_access_logs','kl_access_logs_archive'), // default available (and allowed) log tables
@@ -933,10 +933,11 @@ function kl_analytics( $atts, $content = null ) {
     $output .= '<a name = "klala_users_login_counts_a"></a>';              
     $output .= '<div class="klala klala_users_login_counts" id = "klala_users_login_counts">';
     $output .= '<h4>'.'User logins';
-    if ((int) $_REQUEST['klala_limit'] > 0) { $output .= ' ('.'top '.$_REQUEST['klala_limit'].')'; }
+    // include limit'ing onyl if not merging other roles to show users who didn't log in 
+    if (empty($klala_config['roles']) && (int) $_REQUEST['klala_limit'] > 0) { $output .= ' ('.'top '.$_REQUEST['klala_limit'].')'; }
     $output .= '</h4>';
     $output .= klala_show_filters(array('start','end','limit'));
-    $klala_users_login_counts = klala_user_logins($klala_config['klala_table'],$_REQUEST['klala_limit']); 
+    $klala_users_login_counts = klala_user_logins($klala_config['klala_table'],empty($klala_config['roles'])?$_REQUEST['klala_limit']:null); 
     
     // merge other roles if set i.e. to show those that haven't logged in too    
     if (!empty($klala_config['roles'])) {
