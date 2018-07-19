@@ -3,7 +3,7 @@
 Plugin Name: KL Access Logs Analytics
 Plugin URI: https://github.com/educate-sysadmin/kl-analytics
 Description: Wordpress plugin to provide (modified) (Combined) Common Log Format analytics (from kl-access-logs)
-Version: 0.2
+Version: 0.3
 Author: b.cunningham@ucl.ac.uk
 Author URI: https://educate.london
 License: GPL2
