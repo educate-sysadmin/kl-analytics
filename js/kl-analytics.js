@@ -66,25 +66,31 @@ jQuery(document).ready(function() {
 		jQuery(this).addClass('active');
 	});
 	
-	
 	// try add datatables
-	try {
-		// lookup datetime column index for sort
-		ths = jQuery('table#klala_data_table th');
-		var index = 1; // default
-		for (var c = 0; c < ths.length; c++) {
-			if (ths[c].innerHTML.indexOf('datetime') > -1) {
-				index = c;
-				break;
-			}
-		}			
-		jQuery('#klala_data_table').DataTable( {
-			"order": [[ index, "desc" ]]
-		} );
-	} catch (error) {
-		console.log("Error applying datatables");
-	} 
-	
+	if (klala_datatables) {
+		try {
+			// default datatables
+			jQuery('.klala_datatable_default').DataTable( {
+				"order": []
+			} );
+			
+			// data table
+			// lookup datetime column index for sort
+			ths = jQuery('table#klala_data_table th');
+			var index = 1; // default
+			for (var c = 0; c < ths.length; c++) {
+				if (ths[c].innerHTML.indexOf('datetime') > -1) {
+					index = c;
+					break;
+				}
+			}			
+			jQuery('#klala_data_table').DataTable( {
+				"order": [[ index, "desc" ]]
+			} );
+		} catch (error) {
+			console.log("Error applying datatables");
+		} 
+	}
 	
 });
 
