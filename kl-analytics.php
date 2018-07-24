@@ -585,6 +585,47 @@ function klala_downloads($table, $limit = null) {
     return $return;
 }
 
+function klala_checkbox_progress($table, $limit = null) {
+    global $wpdb;
+    global $klala_config;    
+    
+    $sql = 'SELECT category1, category2, roles, userid, request AS `download`, referer, count(request) AS `count` FROM '.$table;
+    $sql .= ' WHERE request LIKE "%download%" ';
+    if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
+        $sql .= ' AND datetime >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
+    }
+    if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
+        $sql .= ' AND datetime >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
+    }
+    if (isset($_REQUEST['klala_filter_roles'])) {
+		$sql .= ' AND (';
+		for ($c = 0; $c < count($_REQUEST['klala_filter_roles']); $c++) {
+			$sql .= ' roles LIKE "%'.$_REQUEST['klala_filter_roles'][$c].'%" ';
+			if ($c < count($_REQUEST['klala_filter_roles']) - 1) { $sql .= ' OR '; }
+		}
+		$sql .= ' )';		
+    }        
+    if (isset($_REQUEST['klala_filter_users'])) {
+		$sql .= ' AND (';
+		for ($c = 0; $c < count($_REQUEST['klala_filter_users']); $c++) {
+			$sql .= ' userid LIKE "%'.$_REQUEST['klala_filter_users'][$c].'%" ';
+			if ($c < count($_REQUEST['klala_filter_users']) - 1) { $sql .= ' OR '; }
+		}
+		$sql .= ' )';		
+    }
+    $sql .= ' GROUP BY category1, category2, roles, userid, download, referer ORDER BY count(request) DESC';
+        
+    if ($limit > 0) {
+        $sql .= ' LIMIT '.$limit;
+    }
+                   
+ 	// get results
+	$result = $wpdb->get_results( 
+		$sql,
+		ARRAY_A
+	);
+}	
+
 function klala_show_filters($show = array('start','end','roles','category1','category2','users','limit')) {
 	$output = '';
 	$output .= '<div class = "klala_filters_info">';
@@ -903,14 +944,17 @@ function kl_analytics( $atts, $content = null ) {
 	$output .= 'jQuery("#kl-analytics-filters").hide();';
 	$output .= '</script>';    	
 
-	// tab navigation // but not working bootstrap js replaced by js/..
+	// tab navigation // but bootstrap js (not working) replaced by js/..
 	$output .= '<ul class="nav nav-tabs">';
 	$output .= '<li class="nav-item">';
-	$output .= '<a class="nav-link active" href="javascript:klala_switchTab(\'overview\');"><h3>Overview</h3></a>';
+	$output .= '<a id="nav-link-overview" class="nav-link" href="javascript:klala_switchTab(\'overview\');"><h3>Overview</h3></a>';
 	$output .= '</li>';
 	$output .= '<li class="nav-item">';
-	$output .= '<a class="nav-link active" href="javascript:klala_switchTab(\'data\');"><h3>Data</h3></a>';
+	$output .= '<a id="nav-link-data" class="nav-link" href="javascript:klala_switchTab(\'data\');"><h3>Data</h3></a>';
 	$output .= '</li>';
+	$output .= '<li class="nav-item">';
+	$output .= '<a id="nav-link-progress" class="nav-link" href="javascript:klala_switchTab(\'progress\');"><h3>Progress</h3></a>';
+	$output .= '</li>';	
 	$output .= '</ul>';
     
     $output .= '<div id = "overview" class="klala-tab">';
@@ -1041,6 +1085,8 @@ function kl_analytics( $atts, $content = null ) {
     
     $output .= '</div>'; // overview
     
+    
+    
     $output .= '<div id = "data" class="klala-tab">';
     //$output .= '<h3>Data</h3>';
 	$output .= klala_show_filters(array('start','end'));    
@@ -1066,6 +1112,13 @@ function kl_analytics( $atts, $content = null ) {
     $output .= '</div>';     
     
     $output .= '</div>'; // data
+    
+    $output .= '<div id = "progress" class="klala-tab">';
+    
+    $output .= '</div>'; // progress
+    
+    // export klala_datatables to js
+    $output .= '<script>var klala_datatables = '.(get_option('klala_datatables')?'true':'false').';</script>';
     
     wp_enqueue_script('kl-analytics-js', plugins_url('js/kl-analytics.js',__FILE__ ));    
        

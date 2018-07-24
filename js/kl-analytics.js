@@ -4,6 +4,7 @@ function klala_hideTabs() {
 
 function klala_showTab(id) {
 	jQuery('#'+id).show();
+	
 }
 
 function klala_switchTab(id) {
@@ -37,10 +38,34 @@ function klala_accordion_toggle(link, target) {
 	}
 }
 
+// thanks https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
+function klala_getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
 
 jQuery(document).ready(function() {
 	klala_hideTabs();
-	klala_showTab('overview');
+	var tab = klala_getParameterByName('tab');
+	if (tab) {
+		klala_showTab(tab);
+		jQuery('#nav-link-'+tab).addClass('active');
+	} else {
+		klala_showTab('overview');
+		jQuery('#nav-link-overview').addClass('active');
+	}
+	
+	// hacky active tab indicator
+	jQuery('.nav-link').click(function() {
+		jQuery('.nav-link').removeClass('active');
+		jQuery(this).addClass('active');
+	});
+	
 	
 	// try add datatables
 	try {

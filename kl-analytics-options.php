@@ -21,6 +21,7 @@ function register_klala_plugin_settings() {
 	//register our settings
 	register_setting( 'klala-plugin-settings-group', 'klala_limit' );
 	register_setting( 'klala-plugin-settings-group', 'klala_downloads_monitor' ); // whether to report on downloads as provided by Downloads Monitor plugin
+	register_setting( 'klala-plugin-settings-group', 'klala_datatables' );	// Try add datatables javascript
 	register_setting( 'klala-plugin-settings-group', 'klala_user_filter_source' );	// 'logs' || 'klal_roles_filter' // i.e. log records or klal option
 }
 
@@ -44,7 +45,12 @@ function klala_plugin_settings_page() {
     	<tr valign="top">
         <th scope="row">Download Monitor plugin support</th>
         <td><input type="checkbox" name="klala_downloads_monitor" value="true" <?php if ( get_option('klala_downloads_monitor') ) echo ' checked '; ?> /></td>
-        </tr>        
+        </tr>
+        
+        <tr valign="top">
+        <th scope="row">Add JavaScript Datatables</th>
+        <td><input type="checkbox" name="klala_datatables" value="true" <?php if ( get_option('klala_datatables') ) echo ' checked '; ?> /></td>
+        </tr>
                                
     	<tr valign="top">
         <th scope="row">User filter source</th>        

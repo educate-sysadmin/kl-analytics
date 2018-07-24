@@ -16,3 +16,5 @@ input.kl-analytics-download, input[type="submit"].kl-analytics-filter {
 
 .klala_filters_info { font-size: small; }
 .klala_filters_info li { list-style-type: none; }
+
+.nav-link.active, .nav-link.active:hover, .nav-link.active:active { text-decoration: underline; color: brown !important; } /* todo */
