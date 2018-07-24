@@ -37,6 +37,7 @@ $klala_config = array(
     'groups' => '', // groups to merge into user-based results e.g. user logins (kl-specific) comma-delimited, defaults to get_option('klala_add_groups')    
     'klala_tables' => array('kl_access_logs','kl_access_logs_archive'), // default available (and allowed) log tables
     'klala_table' => null, // current table
+    'klala_progress_table' => null, // checkbox progress table
     'klala_default_day_cutoff' => 15, // if less than this, try show previous months results, else current month
 );
 
@@ -116,9 +117,9 @@ function klala_get_user_roles($filter, $user_id) {
     } else {
        	$roles = $user->roles;
     }
-   
+    
     $return_roles = array();
-    $filter_roles = explode(",",$filter);    
+    $filter_roles = explode(",",$filter);        
     foreach ($roles as $role) {
         foreach ($filter_roles as $filter_role) {
             if (strpos($role,$filter_role) !== false) { 
@@ -126,6 +127,7 @@ function klala_get_user_roles($filter, $user_id) {
         	}
         }    
     }
+    
     return $return_roles; 
 }
 
@@ -585,17 +587,17 @@ function klala_downloads($table, $limit = null) {
     return $return;
 }
 
-function klala_checkbox_progress($table, $limit = null) {
+function klala_checkbox_progress_all_data($table, $limit = null) { /* not currently used, see klala_checkbox_progress() */
     global $wpdb;
     global $klala_config;    
     
-    $sql = 'SELECT category1, category2, roles, userid, request AS `download`, referer, count(request) AS `count` FROM '.$table;
-    $sql .= ' WHERE request LIKE "%download%" ';
+    $sql = 'SELECT roles, category1, category2, milestone, user, request, timestamp FROM '.$table;    
+    $sql .= ' WHERE done = 1 ';
     if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
-        $sql .= ' AND datetime >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
+        $sql .= ' AND timestamp >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND timestamp <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
     }
     if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
-        $sql .= ' AND datetime >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
+        $sql .= ' AND timestamp >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND timestamp <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
     }
     if (isset($_REQUEST['klala_filter_roles'])) {
 		$sql .= ' AND (';
@@ -608,12 +610,29 @@ function klala_checkbox_progress($table, $limit = null) {
     if (isset($_REQUEST['klala_filter_users'])) {
 		$sql .= ' AND (';
 		for ($c = 0; $c < count($_REQUEST['klala_filter_users']); $c++) {
-			$sql .= ' userid LIKE "%'.$_REQUEST['klala_filter_users'][$c].'%" ';
+			$sql .= ' user LIKE "%'.$_REQUEST['klala_filter_users'][$c].'%" ';
 			if ($c < count($_REQUEST['klala_filter_users']) - 1) { $sql .= ' OR '; }
 		}
 		$sql .= ' )';		
     }
-    $sql .= ' GROUP BY category1, category2, roles, userid, download, referer ORDER BY count(request) DESC';
+    if (isset($_REQUEST['klala_filter_category1'])) {
+		$sql .= ' AND (';
+		for ($c = 0; $c < count($_REQUEST['klala_filter_category1']); $c++) {
+			$sql .= ' category1 LIKE "%'.$_REQUEST['klala_filter_category1'][$c].'%" ';
+			if ($c < count($_REQUEST['klala_filter_category1']) - 1) { $sql .= ' OR '; }
+		}
+		$sql .= ' )';		
+    }    
+	if (isset($_REQUEST['klala_filter_category2'])) {
+		$sql .= ' AND (';
+		for ($c = 0; $c < count($_REQUEST['klala_filter_category2']); $c++) {
+			$sql .= ' category1 LIKE "%'.$_REQUEST['klala_filter_category2'][$c].'%" ';
+			if ($c < count($_REQUEST['klala_filter_category2']) - 1) { $sql .= ' OR '; }
+		}
+		$sql .= ' )';		
+    }        
+    	
+    $sql .= ' GROUP BY roles, category1, category2, milestone, user ORDER BY timestamp';
         
     if ($limit > 0) {
         $sql .= ' LIMIT '.$limit;
@@ -624,7 +643,159 @@ function klala_checkbox_progress($table, $limit = null) {
 		$sql,
 		ARRAY_A
 	);
+	
+	return $result;
+}
+
+function klala_checkbox_progress_data($table, $limit = null) { 
+    global $wpdb;
+    global $klala_config;    
+    
+    $sql = 'SELECT roles, user, milestone, timestamp FROM '.$table;
+    $sql .= ' WHERE done = 1 ';
+    if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
+        $sql .= ' AND timestamp >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND timestamp <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
+    }
+    if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
+        $sql .= ' AND timestamp >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND timestamp <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
+    }
+    if (isset($_REQUEST['klala_filter_roles'])) {
+		$sql .= ' AND (';
+		for ($c = 0; $c < count($_REQUEST['klala_filter_roles']); $c++) {
+			$sql .= ' roles LIKE "%'.$_REQUEST['klala_filter_roles'][$c].'%" ';
+			if ($c < count($_REQUEST['klala_filter_roles']) - 1) { $sql .= ' OR '; }
+		}
+		$sql .= ' )';		
+    }        
+    if (isset($_REQUEST['klala_filter_users'])) {
+		$sql .= ' AND (';
+		for ($c = 0; $c < count($_REQUEST['klala_filter_users']); $c++) {
+			$sql .= ' user LIKE "%'.$_REQUEST['klala_filter_users'][$c].'%" ';
+			if ($c < count($_REQUEST['klala_filter_users']) - 1) { $sql .= ' OR '; }
+		}
+		$sql .= ' )';		
+    }
+    	
+    $sql .= ' GROUP BY roles, user, milestone ORDER BY timestamp';
+        
+    if ($limit > 0) {
+        $sql .= ' LIMIT '.$limit;
+    }
+                   
+ 	// get results
+	$result = $wpdb->get_results( 
+		$sql,
+		ARRAY_A
+	);
+	
+	return $result;
 }	
+
+/* helpers for klala_checkbox_progress() */
+// get users info for checkbox progress (from options)
+function klala_get_progress_user_details() {
+	global $wpdb;
+	
+	$roles = explode(",",get_option('klala_progress_roles'));
+		
+	$args = array(
+		'role__in' => $roles,
+	);	
+	$users = get_users( $args );
+	
+	if (get_option('klala_progress_append_users_from_log')) {
+		$sql = 'SELECT DISTINCT user FROM '.$wpdb->prefix.'kl_progress';
+		$result = $wpdb->get_results($sql);
+		foreach ($result as $r) {
+			$users2 = get_users( array( 'search' => $r->user ));
+			$users = array_merge($users, $users2);
+		}
+	}
+	
+	return $users;
+}
+
+// get relevant milestones for progress (from options)
+function klala_get_progress_milestones() {
+	return explode(",",get_option('klala_progress_milestones'));
+}
+
+function klala_progress_done($data, $milestone, $user) {
+	foreach ($data as $record) {
+		if ($record['milestone'] == $milestone && $record['user'] == $user) {
+			return array('done'=>true,'timestamp'=>$record['timestamp']);
+		}
+	}
+	// else
+	return false;
+}
+
+// populate progress data
+function klala_checkbox_progress($table, $limit = "not used") {	
+    global $klala_config;
+
+	$users = klala_get_progress_user_details();
+	$milestones = klala_get_progress_milestones();
+	$progress_data = klala_checkbox_progress_data($klala_config['klala_progress_table']);
+	
+	$progress = array();
+	
+	foreach ($users as $user) {
+		$roles = implode(",",klala_get_user_roles(get_option('klala_progress_roles'), $user->ID));
+		echo $user->user_login.': '; var_dump($roles); echo '<br/>';
+		foreach ($milestones as $milestone) {
+			$complete = false;
+			$timestamp = '';
+			$completion = klala_progress_done($progress_data, $milestone, $user->user_login);
+			if ($completion && $completion['done'] == true) { 
+				$complete  = true; 
+				$timestamp = $completion['timestamp'];
+			}
+			$progress[] = array(
+				'roles' => $roles,
+				'user' => $user->user_login,
+				'milestone' => $milestone,
+				'complete' => $complete,
+				'timestamp' => $timestamp,
+			);
+		}
+	}
+	return $progress;
+}
+
+// handle unique display for progress data
+function klala_checkbox_progress_display($data) {
+	$output = '';
+	
+	$groupby_role = null; $groupby_user = null;  
+	foreach ($data as $record) {
+		// user grouping? 
+		if ($record['user'] != $groupby_user) {
+			if ($groupby_user != null) {
+				$output .=  '</tbody>';
+				$output .=  '</table>';
+			}
+			// insert role grouping?
+			if ($groupby_role != $record['roles']) {
+				$output .= '<h5><span class="klala_groupby_roles">Role(s): </span>'.$record['roles'].'</h5>';
+				$groupby_role = $record['roles'];
+			}		
+			$output .= '<h5><span class="klala_groupby_user">User: </span>'.$record['user'].'</h5>';			
+			$output .= '<table class="klala_table klala_table_progress '.(str_replace(","," ",$record['user'])).' not_klala_datatable_default">';
+			$output .= '<thead>';
+			$output .= '<tr><th>milestone</th><th>complete</th><th>timestamp</th></tr>';
+			$output .= '</thead>';
+			$output .= '<tbody>';
+			$groupby_user = $record['user'];
+		}
+		$output .= '<tr><td>'.$record['milestone'].'</td><td>'.(($record['complete'])?'&#10004;':'').'</td><td>'.$record['timestamp'].'</td></tr>';
+	}
+	$output .=  '</tbody>';
+	$output .=  '</table>';
+	
+	return $output;
+}
+
 
 function klala_show_filters($show = array('start','end','roles','category1','category2','users','limit')) {
 	$output = '';
@@ -695,8 +866,9 @@ function kl_analytics( $atts, $content = null ) {
   	
     klala_init();
     
-    // default table
+    // default tables
     if (!$klala_config['klala_table']) { $klala_config['klala_table'] = $klala_config['klala_tables'][0]; } 
+    if (!$klala_config['klala_progress_table']) { $klala_config['klala_progress_table'] = $wpdb->prefix.'kl_progress'; }
     
     // parse parameters 
 	$options = shortcode_atts( array( 'table' => '' ), $atts );
@@ -1121,6 +1293,27 @@ function kl_analytics( $atts, $content = null ) {
     $output .= '</div>'; // data
     
     $output .= '<div id = "progress" class="klala-tab">';
+    
+    $output .= '<a name = "klala_checkbox_progress_a"></a>';
+    $output .= '<div class="klala klala_checkbox_progress" id="klala_checkbox_progress">';
+    $output .= '<h4>';
+    $output .= 'Checkbox progresses';
+    $output .= '</h4>';
+    $output .= klala_show_filters(array('roles'));
+    $klala_checkbox_progress = klala_checkbox_progress($klala_config['klala_progress_table'], null /* no limit */); 
+    $output .= klala_checkbox_progress_display($klala_checkbox_progress,'klala_checkbox_progress_table','klala_table klala_datatable_default');
+    $output .= '</div>';    
+    
+    $output .= '<hr/>';
+    $output .= '<a name = "klala_checkbox_progress_data_a"></a>';
+    $output .= '<div class="klala klala_checkbox_data_progress" id="klala_checkbox_data_progress">';
+    $output .= '<h4>';
+    $output .= 'Checkbox progresses (data)';
+    $output .= '</h4>';
+    $output .= klala_show_filters(array('start','end','roles'));
+    $klala_checkbox_progress_data = klala_checkbox_progress_data($klala_config['klala_progress_table'], null /* no limit */); 
+    $output .= klutil_array_to_table($klala_checkbox_progress_data,'klala_checkbox_data_progress_table','klala_table klala_datatable_default');
+    $output .= '</div>';    
     
     $output .= '</div>'; // progress
     

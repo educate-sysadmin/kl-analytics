@@ -23,7 +23,11 @@ function register_klala_plugin_settings() {
 	register_setting( 'klala-plugin-settings-group', 'klala_downloads_monitor' ); // whether to report on downloads as provided by Downloads Monitor plugin
 	register_setting( 'klala-plugin-settings-group', 'klala_datatables' );	// Try add datatables javascript
 	register_setting( 'klala-plugin-settings-group', 'klala_user_filter_source' );	// 'logs' || 'klal_roles_filter' // i.e. log records or klal option
+	register_setting( 'klala-plugin-settings-group', 'klala_progress_roles' );	// roles of users to include in progress reporting
+	register_setting( 'klala-plugin-settings-group', 'klala_progress_append_users_from_log' );	// append roles/users from log table (mostly for development)
+	register_setting( 'klala-plugin-settings-group', 'klala_progress_milestones' );	// all milestones to populate for progress reporting	
 }
+
 
 function klala_plugin_settings_page() {
 ?>
@@ -33,6 +37,7 @@ function klala_plugin_settings_page() {
     <form method="post" action="options.php">
     <?php settings_fields( 'klala-plugin-settings-group' ); ?>
     <?php do_settings_sections( 'klala-plugin-settings-group' ); ?>
+    <h2>General</h2>
     <table class="form-table">          
         <tr valign="top">
         <th scope="row">Default limit</th>
@@ -62,7 +67,30 @@ function klala_plugin_settings_page() {
 		</td>
         </tr>        
                 
-                
+    </table>
+    
+    <h2>Progress tracker</h2>
+		<table class="form-table">          
+        <tr valign="top">
+        <th scope="row">Roles</th>
+        <td>
+        	<input type="text" name="klala_progress_roles" value="<?php echo esc_attr( get_option('klala_progress_roles') ); ?>"  />
+        	<p><small>User roles to include in checkbox progress reporting. Comma-delimited.</small></p>
+        </td>
+        </tr>
+        
+    	<tr valign="top">
+        <th scope="row">Append users from log</th>
+        <td><input type="checkbox" name="klala_progress_append_users_from_log" value="true" <?php if ( get_option('klala_progress_append_users_from_log') ) echo ' checked '; ?> /></td>
+        </tr>
+                    
+        <tr valign="top">
+        <th scope="row">Milestones</th>
+        <td>
+        	<input type="text" name="klala_progress_milestones" value="<?php echo esc_attr( get_option('klala_progress_milestones') ); ?>"  />
+        	<p><small>Ordered list of all milestones to report against in checkbox progress reporting. Comma-delimited.</small></p>
+        </td>
+        </tr>                    
     </table>
     
     <?php submit_button(); ?>
