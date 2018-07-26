@@ -23,9 +23,11 @@ function register_klala_plugin_settings() {
 	register_setting( 'klala-plugin-settings-group', 'klala_downloads_monitor' ); // whether to report on downloads as provided by Downloads Monitor plugin
 	register_setting( 'klala-plugin-settings-group', 'klala_datatables' );	// Try add datatables javascript
 	register_setting( 'klala-plugin-settings-group', 'klala_user_filter_source' );	// 'logs' || 'klal_roles_filter' // i.e. log records or klal option
-	register_setting( 'klala-plugin-settings-group', 'klala_progress_roles' );	// roles of users to include in progress reporting
-	register_setting( 'klala-plugin-settings-group', 'klala_progress_append_users_from_log' );	// append roles/users from log table (mostly for development)
-	register_setting( 'klala-plugin-settings-group', 'klala_progress_milestones' );	// all milestones to populate for progress reporting	
+	register_setting( 'klala-plugin-settings-group', 'klala_checkbox_progress_roles' );	// roles of users to include in checkbox progress reporting
+	register_setting( 'klala-plugin-settings-group', 'klala_category_progress_roles' );	// roles of users to include in category progress reporting	
+	register_setting( 'klala-plugin-settings-group', 'klala_progress_append_users_from_log' );	// append roles/users from log tables (mostly for development)
+	register_setting( 'klala-plugin-settings-group', 'klala_progress_milestones' );	// all milestones to populate for checkbox progress reporting	
+	register_setting( 'klala-plugin-settings-group', 'klala_progress_category_milestones' );	// all categories to use as milestones to populate for category progress reporting		
 }
 
 
@@ -69,18 +71,27 @@ function klala_plugin_settings_page() {
                 
     </table>
     
-    <h2>Progress tracker</h2>
-		<table class="form-table">          
+    <h2>Progress trackers</h2>
+		<table class="form-table">
+			
         <tr valign="top">
-        <th scope="row">Roles</th>
+        <th scope="row">Checkbox progress roles</th>
         <td>
-        	<input type="text" name="klala_progress_roles" value="<?php echo esc_attr( get_option('klala_progress_roles') ); ?>"  />
+        	<input type="text" name="klala_checkbox_progress_roles" value="<?php echo esc_attr( get_option('klala_checkbox_progress_roles') ); ?>"  />
         	<p><small>User roles to include in checkbox progress reporting. Comma-delimited.</small></p>
         </td>
         </tr>
         
+        <tr valign="top">
+        <th scope="row">Category progress roles</th>
+        <td>
+        	<input type="text" name="klala_category_progress_roles" value="<?php echo esc_attr( get_option('klala_category_progress_roles') ); ?>"  />
+        	<p><small>User roles to include in checkbox progress reporting. Comma-delimited.</small></p>
+        </td>
+        </tr>        
+        
     	<tr valign="top">
-        <th scope="row">Append users from log</th>
+        <th scope="row">Append users from logs</th>
         <td><input type="checkbox" name="klala_progress_append_users_from_log" value="true" <?php if ( get_option('klala_progress_append_users_from_log') ) echo ' checked '; ?> /></td>
         </tr>
                     
@@ -90,7 +101,16 @@ function klala_plugin_settings_page() {
         	<input type="text" name="klala_progress_milestones" value="<?php echo esc_attr( get_option('klala_progress_milestones') ); ?>"  />
         	<p><small>Ordered list of all milestones to report against in checkbox progress reporting. Comma-delimited.</small></p>
         </td>
-        </tr>                    
+        </tr>
+        
+        <tr valign="top">
+        <th scope="row">Category milestones</th>
+        <td>
+        	<input type="text" name="klala_progress_category_milestones" value="<?php echo esc_attr( get_option('klala_progress_category_milestones') ); ?>"  />
+        	<p><small>Ordered list of all categories to use as milestones to report against in category progress reporting. Comma-delimited.</small></p>
+        </td>
+        </tr>        
+        
     </table>
     
     <?php submit_button(); ?>

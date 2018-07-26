@@ -587,11 +587,11 @@ function klala_downloads($table, $limit = null) {
     return $return;
 }
 
-function klala_checkbox_progress_all_data($table, $limit = null) { /* not currently used, see klala_checkbox_progress() */
+function klala_checkbox_progress_all_data($limit = null) { /* not currently used, see klala_checkbox_progress() */
     global $wpdb;
     global $klala_config;    
     
-    $sql = 'SELECT roles, category1, category2, milestone, user, request, timestamp FROM '.$table;    
+    $sql = 'SELECT roles, category1, category2, milestone, user, request, timestamp FROM '.$klala_config['klala_progress_table'];    
     $sql .= ' WHERE done = 1 ';
     if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
         $sql .= ' AND timestamp >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND timestamp <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
@@ -647,11 +647,11 @@ function klala_checkbox_progress_all_data($table, $limit = null) { /* not curren
 	return $result;
 }
 
-function klala_checkbox_progress_data($table, $limit = null) { 
+function klala_checkbox_progress_data($limit = null) { 
     global $wpdb;
     global $klala_config;    
     
-    $sql = 'SELECT roles, user, milestone, timestamp FROM '.$table;
+    $sql = 'SELECT roles, user, milestone, timestamp FROM '.$klala_config['klala_progress_table'];
     $sql .= ' WHERE done = 1 ';
     if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
         $sql .= ' AND timestamp >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND timestamp <= "'.$_REQUEST['klala_end'].' 23:59:59'.'" ';   
@@ -693,23 +693,42 @@ function klala_checkbox_progress_data($table, $limit = null) {
 
 /* helpers for klala_checkbox_progress() */
 // get users info for checkbox progress (from options)
-function klala_get_progress_user_details() {
+function klala_get_progress_user_details($roles) {
 	global $wpdb;
+	global $klala_config;
 	
-	$roles = explode(",",get_option('klala_progress_roles'));
-		
+	$roles = explode(",",$roles);
+
+	// query individually to group by role		
+	/*
 	$args = array(
 		'role__in' => $roles,
 	);	
 	$users = get_users( $args );
+	*/
+	$users = array();
+	foreach ($roles as $role) {
+		$args = array(
+			'role' => $role,
+		);	
+		$users1 = get_users( $args );	
+		$users = array_merge($users, $users1);
+	}
+	
 	
 	if (get_option('klala_progress_append_users_from_log')) {
-		$sql = 'SELECT DISTINCT user FROM '.$wpdb->prefix.'kl_progress';
+		$sql = 'SELECT DISTINCT user FROM '.$klala_config['klala_progress_table'];
 		$result = $wpdb->get_results($sql);
 		foreach ($result as $r) {
 			$users2 = get_users( array( 'search' => $r->user ));
 			$users = array_merge($users, $users2);
 		}
+		$sql = 'SELECT DISTINCT userid FROM '.$klala_config['klala_table'];
+		$result = $wpdb->get_results($sql);
+		foreach ($result as $r) {
+			$users2 = get_users( array( 'search' => $r->userid ));
+			$users = array_merge($users, $users2);
+		}		
 	}
 	
 	return $users;
@@ -730,19 +749,18 @@ function klala_progress_done($data, $milestone, $user) {
 	return false;
 }
 
-// populate progress data
-function klala_checkbox_progress($table, $limit = "not used") {	
+// populate checkbox progress data
+function klala_checkbox_progress($limit = "not used") {	
     global $klala_config;
 
-	$users = klala_get_progress_user_details();
+	$users = klala_get_progress_user_details(get_option('klala_checkbox_progress_roles'));
 	$milestones = klala_get_progress_milestones();
 	$progress_data = klala_checkbox_progress_data($klala_config['klala_progress_table']);
 	
 	$progress = array();
 	
 	foreach ($users as $user) {
-		$roles = implode(",",klala_get_user_roles(get_option('klala_progress_roles'), $user->ID));
-		echo $user->user_login.': '; var_dump($roles); echo '<br/>';
+		$roles = implode(",",klala_get_user_roles(get_option('klala_checkbox_progress_roles'), $user->ID));
 		foreach ($milestones as $milestone) {
 			$complete = false;
 			$timestamp = '';
@@ -764,24 +782,31 @@ function klala_checkbox_progress($table, $limit = "not used") {
 }
 
 // handle unique display for progress data
-function klala_checkbox_progress_display($data) {
+function klala_progress_display($data) {
 	$output = '';
 	
 	$groupby_role = null; $groupby_user = null;  
 	foreach ($data as $record) {
+		$classes = (str_replace(","," ",$record['user'])).' '.(str_replace(","," ",$record['roles']));
 		// user grouping? 
 		if ($record['user'] != $groupby_user) {
 			if ($groupby_user != null) {
 				$output .=  '</tbody>';
 				$output .=  '</table>';
+				//$output .=  '</div>'.' <!-- user -->';
 			}
 			// insert role grouping?
 			if ($groupby_role != $record['roles']) {
-				$output .= '<h5><span class="klala_groupby_roles">Role(s): </span>'.$record['roles'].'</h5>';
+				if ($groupby_role != null) {
+					//$output .=  '</div>'.' <!-- roles -->';
+				}
+				//$output .=  '<div class="kl_progress_role_group '.(str_replace(","," ",$record['roles'])).'">';
+				$output .= '<h5 class="'.$classes.'"><span class="klala_groupby_roles">Role(s): </span>'.$record['roles'].'</h5>';
 				$groupby_role = $record['roles'];
 			}		
-			$output .= '<h5><span class="klala_groupby_user">User: </span>'.$record['user'].'</h5>';			
-			$output .= '<table class="klala_table klala_table_progress '.(str_replace(","," ",$record['user'])).' not_klala_datatable_default">';
+			//$output .=  '<div class="kl_progress_user_group '.(str_replace(","," ",$record['user'])).'">';			
+			$output .= '<h6 class="'.$classes.'"><span class="klala_groupby_user">User: </span>'.$record['user'].'</h6>';
+			$output .= '<table class="klala_table klala_table_progress '.$classes.' not_klala_datatable_default">';
 			$output .= '<thead>';
 			$output .= '<tr><th>milestone</th><th>complete</th><th>timestamp</th></tr>';
 			$output .= '</thead>';
@@ -793,7 +818,58 @@ function klala_checkbox_progress_display($data) {
 	$output .=  '</tbody>';
 	$output .=  '</table>';
 	
+	//$output .=  '</div>'.' <!-- user -->';
+	//$output .=  '</div>'.' <!-- roles -->';
+	
 	return $output;
+}
+
+// helper to get categories to use as progress milestones
+function klala_get_progress_category_milestones() {
+	return explode(",",get_option('klala_progress_category_milestones'));
+}
+
+// compute if category milestone completed i.e. any page in category visited
+function klala_category_progress_done($data, $milestone, $user) {
+	foreach ($data as $record) {
+		if (( $record->category1 == $milestone || $record->category2 == $milestone) && $record->userid == $user) {
+			return array('done'=>true,'timestamp'=>$record->timestamp);
+		}
+	}
+	// else
+	return false;	
+}
+
+// populate progress data based on category milestones
+function klala_category_progress($limit = "not used") {	
+    global $klala_config;
+
+	$users = klala_get_progress_user_details(get_option('klala_category_progress_roles'));
+	$milestones = klala_get_progress_category_milestones();
+	$data = klala_get_logs($klala_config['klala_table']);
+	
+	$progress = array();
+	
+	foreach ($users as $user) {
+		$roles = implode(",",klala_get_user_roles(get_option('klala_category_progress_roles'), $user->ID));		
+		foreach ($milestones as $milestone) {
+			$complete = false;
+			$timestamp = '';
+			$completion = klala_category_progress_done($data, $milestone, $user->user_login);
+			if ($completion && $completion['done'] == true) { 
+				$complete  = true; 
+				$timestamp = $completion['timestamp'];
+			}
+			$progress[] = array(
+				'roles' => $roles,
+				'user' => $user->user_login,
+				'milestone' => $milestone,
+				'complete' => $complete,
+				'timestamp' => $timestamp,
+			);
+		}
+	}
+	return $progress;
 }
 
 
@@ -1125,7 +1201,10 @@ function kl_analytics( $atts, $content = null ) {
 	$output .= '<a id="nav-link-data" class="nav-link" href="javascript:klala_switchTab(\'data\');"><h3>Data</h3></a>';
 	$output .= '</li>';
 	$output .= '<li class="nav-item">';
-	$output .= '<a id="nav-link-progress" class="nav-link" href="javascript:klala_switchTab(\'progress\');"><h3>Progress</h3></a>';
+	$output .= '<a id="nav-link-progressa" class="nav-link" href="javascript:klala_switchTab(\'progressa\');"><h3>Progress (Checkboxes)</h3></a>';
+	$output .= '</li>';	
+	$output .= '<li class="nav-item">';
+	$output .= '<a id="nav-link-progressb" class="nav-link" href="javascript:klala_switchTab(\'progressb\');"><h3>Progress (Categories)</h3></a>';
 	$output .= '</li>';	
 	$output .= '</ul>';
     
@@ -1262,7 +1341,7 @@ function kl_analytics( $atts, $content = null ) {
     // add google charts
     $output .= klala_init_google_charts();
     
-    $output .= '</div>'; // overview
+    $output .= '</div>'.'<!-- overview -->';
     
     
     
@@ -1290,9 +1369,9 @@ function kl_analytics( $atts, $content = null ) {
     $output .= '</form>';
     $output .= '</div>';     
     
-    $output .= '</div>'; // data
+    $output .= '</div>'.'<!-- data -->'."\n";
     
-    $output .= '<div id = "progress" class="klala-tab">';
+    $output .= '<div id = "progressa" class="klala-tab">';
     
     $output .= '<a name = "klala_checkbox_progress_a"></a>';
     $output .= '<div class="klala klala_checkbox_progress" id="klala_checkbox_progress">';
@@ -1300,8 +1379,8 @@ function kl_analytics( $atts, $content = null ) {
     $output .= 'Checkbox progresses';
     $output .= '</h4>';
     $output .= klala_show_filters(array('roles'));
-    $klala_checkbox_progress = klala_checkbox_progress($klala_config['klala_progress_table'], null /* no limit */); 
-    $output .= klala_checkbox_progress_display($klala_checkbox_progress,'klala_checkbox_progress_table','klala_table klala_datatable_default');
+    $klala_checkbox_progress = klala_checkbox_progress(null /* no limit */); 
+    $output .= klala_progress_display($klala_checkbox_progress,'klala_checkbox_progress_table','klala_table klala_datatable_default');
     $output .= '</div>';    
     
     $output .= '<hr/>';
@@ -1311,11 +1390,25 @@ function kl_analytics( $atts, $content = null ) {
     $output .= 'Checkbox progresses (data)';
     $output .= '</h4>';
     $output .= klala_show_filters(array('start','end','roles'));
-    $klala_checkbox_progress_data = klala_checkbox_progress_data($klala_config['klala_progress_table'], null /* no limit */); 
+    $klala_checkbox_progress_data = klala_checkbox_progress_data(null /* no limit */); 
     $output .= klutil_array_to_table($klala_checkbox_progress_data,'klala_checkbox_data_progress_table','klala_table klala_datatable_default');
     $output .= '</div>';    
     
-    $output .= '</div>'; // progress
+    $output .= '</div>'.'<!-- progressa -->'."\n";
+    
+    $output .= '<div id = "progressb" class="klala-tab">';
+        
+    $output .= '<a name = "klala_category_progress_a"></a>'."\n";
+    $output .= '<div class="klala klala_category_progress" id="klala_category_progress">'."\n";
+    $output .= '<h4>';
+    $output .= 'Category progresses';
+    $output .= '</h4>'."\n";
+    //$output .= klala_show_filters(array('roles'));
+    $klala_category_progress = klala_category_progress(null /* no limit */); 
+    $output .= klala_progress_display($klala_category_progress,'klala_category_progress_table','klala_table klala_datatable_default');
+    $output .= '</div>'."\n";    
+    
+    $output .= '</div>'.'<!-- progressb -->'."\n";
     
     // export klala_datatables to js
     $output .= '<script>var klala_datatables = '.(get_option('klala_datatables')?'true':'false').';</script>';
