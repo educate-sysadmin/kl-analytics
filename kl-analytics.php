@@ -169,16 +169,18 @@ function klala_get_users_in_log() {
 	return $return;
 }
 
-function klala_get_logs($table) {
+function klala_get_logs($table, $filtered = true) {
 	global $wp, $wpdb;
     global $klala_config;
     
     if (strpos($table,$wpdb->prefix) === false) { $table = $wpdb->prefix.$table; }
     
     $sql = 'SELECT * FROM '.$table;
-    if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
-        $sql .= ' WHERE datetime >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_REQUEST['klala_end'].' 23:59:59'.'"';   
-    }
+    if ($filtered) {
+		if (isset($_REQUEST['klala_start']) && isset($_REQUEST['klala_end'])) {
+			$sql .= ' WHERE datetime >= "'.$_REQUEST['klala_start'].' 00:00:00'.'" AND datetime <= "'.$_REQUEST['klala_end'].' 23:59:59'.'"';   
+		}
+	}
  	
  	// get results
 	$result = $wpdb->get_results( 
@@ -846,7 +848,7 @@ function klala_category_progress($limit = "not used") {
 
 	$users = klala_get_progress_user_details(get_option('klala_category_progress_roles'));
 	$milestones = klala_get_progress_category_milestones();
-	$data = klala_get_logs($klala_config['klala_table']);
+	$data = klala_get_logs($klala_config['klala_table'], false); // get unfiltered logs
 	
 	$progress = array();
 	
