@@ -35,7 +35,7 @@ $klala_config = array(
     'roles' => array('test'), // roles to merge into user-based results e.g. user logins (kl-specific)
     'roles_populate' => '', // roles to populate roles field with when merging (kl-specific)
     'groups' => '', // groups to merge into user-based results e.g. user logins (kl-specific) comma-delimited, defaults to get_option('klala_add_groups')    
-    'klala_tables' => array('kl_access_logs','kl_access_logs_archive'), // default available (and allowed) log tables
+    'klala_tables' => array('kl_access_logs','kl_access_logs_archive','kl_access_logs_educate_participant', 'kl_access_logs_educate_participant_archive'), // default available (and allowed) log tables
     'klala_table' => null, // current table
     'klala_progress_table' => null, // checkbox progress table
     'klala_default_day_cutoff' => 15, // if less than this, try show previous months results, else current month
@@ -831,7 +831,7 @@ function klala_get_progress_category_milestones() {
 	return explode(",",get_option('klala_progress_category_milestones'));
 }
 
-// compute if category milestone completed i.e. any page in category visited
+// compute if category milestones completed i.e. all, any or no pages in category visited
 function klala_category_progress_done($data, $milestone, $user) {
 	foreach ($data as $record) {
 		if (( $record->category1 == $milestone || $record->category2 == $milestone) && $record->userid == $user) {
@@ -944,13 +944,13 @@ function kl_analytics( $atts, $content = null ) {
   	
     klala_init();
     
-    // default tables
+    // default tables    
     if (!$klala_config['klala_table']) { $klala_config['klala_table'] = $klala_config['klala_tables'][0]; } 
     if (!$klala_config['klala_progress_table']) { $klala_config['klala_progress_table'] = $wpdb->prefix.'kl_progress'; }
     
     // parse parameters 
 	$options = shortcode_atts( array( 'table' => '' ), $atts );
-	if ($options['table'] != '') {	    
+	if ($options['table'] != '') {		
 	    if (in_array($options['table'], $klala_config['klala_tables'])) {
 	        $klala_config['klala_table'] = $options['table'];
 	    }
