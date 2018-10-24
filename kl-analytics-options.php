@@ -34,7 +34,7 @@ function register_klala_plugin_settings() {
 function klala_plugin_settings_page() {
 ?>
     <div class="wrap">
-    <h1>KL Access Logs Settings</h1>
+    <h1>KL Analytics Settings</h1>
 
     <form method="post" action="options.php">
     <?php settings_fields( 'klala-plugin-settings-group' ); ?>
